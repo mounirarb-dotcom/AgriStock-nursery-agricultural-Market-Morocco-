@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator user with security credentials and role-based permissions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "admin", "auditor"] },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role", "status"]
+    },
+    "AdminAuditLog": {
+      "title": "AdminAuditLog",
+      "description": "Immutable audit trail recording every administrative decision and action with timestamp and operator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "adminName": { "type": "string" },
+        "actionType": { "type": "string" },
+        "targetType": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetSummary": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "adminEmail", "actionType", "targetType", "targetId"]
+    },
+    "PlatformSettings": {
+      "title": "PlatformSettings",
+      "description": "Global settings for AGRISTOCK MAROC including commission rates and operational status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "defaultSellerCommissionRate": { "type": "number" },
+        "defaultEscrowGuaranteeRate": { "type": "number" },
+        "minEscrowFeeMAD": { "type": "number" },
+        "maintenanceMode": { "type": "boolean" },
+        "platformNoticeBanner": { "type": "string" },
+        "autoHoldDisputedFunds": { "type": "boolean" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["id", "defaultSellerCommissionRate", "defaultEscrowGuaranteeRate"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account for buyer, seller, nursery, carrier, or admin with multi-roles and verification status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "role": { "type": "string", "enum": ["buyer", "seller", "nursery", "carrier", "admin"] },
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "displayName": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "companyName": { "type": "string" },
+        "region": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "verificationStatus": { "type": "string", "enum": ["active", "pending_verification", "suspended", "rejected"] },
+        "suspendedReason": { "type": "string" },
+        "termsAccepted": { "type": "boolean" },
+        "isProCertified": { "type": "boolean" },
+        "rating": { "type": "number" }
+      },
+      "required": ["id", "role", "displayName", "status"]
+    },
+    "ListingModeration": {
+      "title": "ListingModeration",
+      "description": "Moderation status and decisions for produce listings, nursery lots, and standing crops",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "listingId": { "type": "string" },
+        "listingType": { "type": "string", "enum": ["nursery_lot", "produce", "farm_standing"] },
+        "status": { "type": "string", "enum": ["EN ATTENTE", "VALIDÉ", "EN COURS", "TERMINÉ", "ANNULÉ", "LITIGE", "REFUSÉ"] },
+        "reason": { "type": "string" },
+        "moderatedBy": { "type": "string" },
+        "moderatedAt": { "type": "string" }
+      },
+      "required": ["id", "listingId", "listingType", "status"]
+    },
+    "OrderTransaction": {
+      "title": "OrderTransaction",
+      "description": "Agricultural order and escrow transaction with commission breakdown and status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "referenceNumber": { "type": "string" },
+        "itemTitle": { "type": "string" },
+        "itemType": { "type": "string" },
+        "sellerName": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "subtotalAmountMAD": { "type": "number" },
+        "commissionRate": { "type": "number" },
+        "commissionAmountMAD": { "type": "number" },
+        "escrowFeeMAD": { "type": "number" },
+        "totalAmountMAD": { "type": "number" },
+        "status": { "type": "string", "enum": ["EN ATTENTE", "VALIDÉ", "EN COURS", "TERMINÉ", "ANNULÉ", "LITIGE"] },
+        "disputeReason": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "referenceNumber", "subtotalAmountMAD", "commissionAmountMAD", "status"]
+    }
+  },
+  "firestore": {
+    "/admin_users/{userId}": {
+      "schema": "AdminUser",
+      "description": "Secure collection of administrators with role-based permissions"
+    },
+    "/admin_audit_logs/{logId}": {
+      "schema": "AdminAuditLog",
+      "description": "Immutable log of all administrator operations with date, user, and action"
+    },
+    "/platform_settings/{settingId}": {
+      "schema": "PlatformSettings",
+      "description": "Platform global configuration and default transaction commissions"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles with suspension status and roles"
+    },
+    "/listings_moderation/{listingId}": {
+      "schema": "ListingModeration",
+      "description": "Moderation validation or refusal records for platform listings"
+    },
+    "/orders/{orderId}": {
+      "schema": "OrderTransaction",
+      "description": "Orders, escrow transactions, and commission records"
+    }
+  }
+}

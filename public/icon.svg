@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Deep Moroccan Forest Green Background -->
+    <linearGradient id="iconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="50%" stop-color="#022c22" />
+      <stop offset="100%" stop-color="#041f18" />
+    </linearGradient>
+
+    <!-- Golden Sun & Soil gradient -->
+    <linearGradient id="iconGold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="50%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Left Leaf gradient -->
+    <linearGradient id="iconLeafLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- Right Leaf gradient -->
+    <linearGradient id="iconLeafRight" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+
+    <!-- Star / Golden Apex gradient -->
+    <linearGradient id="iconStar" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <!-- Outer Border stroke -->
+    <linearGradient id="iconBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#10b981" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.7" />
+    </linearGradient>
+
+    <filter id="iconGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#000000" floodOpacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base with Precision Border -->
+  <rect x="20" y="20" width="472" height="472" rx="120" fill="url(#iconBg)" stroke="url(#iconBorder)" stroke-width="10" />
+
+  <!-- Circular Decorative Ring (Zenith & Horizon) -->
+  <circle cx="256" cy="256" r="185" fill="none" stroke="#10b981" stroke-width="5" stroke-opacity="0.25" stroke-dasharray="16 16" />
+
+  <!-- Moroccan Fertile Soil Furrows (Sillons de culture) -->
+  <path d="M 120 375 Q 256 315 392 375" fill="none" stroke="url(#iconGold)" stroke-width="15" stroke-linecap="round" />
+  <path d="M 155 410 Q 256 360 357 410" fill="none" stroke="url(#iconGold)" stroke-width="9" stroke-linecap="round" opacity="0.8" />
+
+  <!-- Nursery Pot & Root Bed -->
+  <path d="M 200 358 L 312 358 L 298 390 C 294 398 285 402 277 402 L 235 402 C 227 402 218 398 214 390 Z" fill="#78350f" stroke="#d97706" stroke-width="4" opacity="0.85" />
+
+  <!-- Central Seedling Stem -->
+  <path d="M 248 358 C 248 276 252 188 256 128 C 260 188 264 276 264 358 Z" fill="#86efac" />
+
+  <!-- Left Vigorous Leaf (Pépinière & Semis) -->
+  <path d="M 256 332 C 243 264 171 221 128 238 C 120 307 188 345 256 332 Z" fill="url(#iconLeafLeft)" filter="url(#iconGlow)" />
+  <!-- Left Leaf Rib -->
+  <path d="M 256 332 C 213 307 170 276 136 246" fill="none" stroke="#a7f3d0" stroke-width="5" stroke-linecap="round" opacity="0.75" />
+
+  <!-- Right Lush Foliage (Arbres Fruitiers & Maraîchage) -->
+  <path d="M 256 307 C 273 230 350 179 392 196 C 401 264 329 315 256 307 Z" fill="url(#iconLeafRight)" filter="url(#iconGlow)" />
+  <!-- Right Leaf Rib -->
+  <path d="M 256 307 C 298 276 341 242 375 204" fill="none" stroke="#bbf7d0" stroke-width="5" stroke-linecap="round" opacity="0.75" />
+
+  <!-- Golden Citrus Fruit -->
+  <circle cx="312" cy="162" r="19" fill="#f59e0b" stroke="#fef08a" stroke-width="4" />
+  <!-- Green Olive Fruit -->
+  <circle cx="201" cy="192" r="15" fill="#15803d" stroke="#86efac" stroke-width="4" />
+
+  <!-- Golden Moroccan 5-Point Star at Apex (ONSSA & Qualité Maroc) -->
+  <polygon points="256,55 266.3,80 292.4,81.7 272.3,98.8 278.7,124.5 256,110 233.3,124.5 239.7,98.8 219.6,81.7 245.7,80" fill="url(#iconStar)" stroke="#fef08a" stroke-width="3" filter="url(#iconGlow)" />
+</svg>

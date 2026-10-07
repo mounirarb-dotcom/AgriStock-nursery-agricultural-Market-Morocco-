@@ -1,0 +1,175 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // OWASP Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions for authentication and identity
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    // Helper function to check if caller is an admin
+    function isAdmin() {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'mounir.arb@gmail.com' ||
+        (request.auth.token.email != null && request.auth.token.email.matches('.*@agristock.ma'))
+      );
+    }
+
+    // Helper functions for user roles based on token claims and user doc
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isNursery() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        request.auth.token.role == 'nursery' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (getUserData().role == 'nursery' || ('roles' in getUserData() && getUserData().roles.hasAny(['nursery']))))
+      );
+    }
+
+    function isSeller() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        request.auth.token.role == 'seller' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (getUserData().role == 'seller' || ('roles' in getUserData() && getUserData().roles.hasAny(['seller']))))
+      );
+    }
+
+    function isCarrier() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        request.auth.token.role == 'carrier' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (getUserData().role == 'carrier' || ('roles' in getUserData() && getUserData().roles.hasAny(['carrier']))))
+      );
+    }
+    
+    // Admin users collection: strictly restricted to admins
+    match /admin_users/{userId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Admin audit logs: append-only for admins, no deletion or modification allowed
+    match /admin_audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Immutable audit trail
+    }
+    
+    // Platform settings: readable by everyone, writeable only by admin
+    match /platform_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // User accounts: public read of public profiles, write by owner or admin
+    // Public users are strictly forbidden from assigning the 'admin' role to themselves.
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin()) &&
+        (!('role' in request.resource.data) || request.resource.data.role != 'admin' || isAdmin()) &&
+        (!('roles' in request.resource.data) || !request.resource.data.roles.hasAny(['admin']) || isAdmin());
+      allow update: if isAdmin() || (
+        isAuthenticated() && request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'verificationStatus', 'suspendedReason', 'role', 'roles'])
+      );
+      allow delete: if isAdmin();
+    }
+    
+    // Nursery lots: public catalog for buyers, write operations strictly restricted to nursery or admin
+    match /nursery_lots/{lotId} {
+      allow read: if true;
+      allow create: if isNursery() && 
+        request.resource.data.quantityAvailable is number && request.resource.data.quantityAvailable >= 0 &&
+        request.resource.data.pricePerUnit is number && request.resource.data.pricePerUnit >= 0;
+      allow update: if isNursery() &&
+        request.resource.data.quantityAvailable is number && request.resource.data.quantityAvailable >= 0 &&
+        request.resource.data.pricePerUnit is number && request.resource.data.pricePerUnit >= 0;
+      allow delete: if isNursery();
+    }
+
+    // Agronomic treatment logs for nursery lots: write operations strictly restricted to nursery or admin
+    match /nursery_treatments/{treatmentId} {
+      allow read: if true;
+      allow create, update, delete: if isNursery();
+    }
+
+    // Produce listings (fruits & vegetables): mutation restricted to sellers / producers and admins
+    match /produce_listings/{listingId} {
+      allow read: if true;
+      allow create: if isSeller() &&
+        request.resource.data.quantityAvailable is number && request.resource.data.quantityAvailable >= 0 &&
+        request.resource.data.pricePerKg is number && request.resource.data.pricePerKg >= 0;
+      allow update: if isSeller() &&
+        request.resource.data.quantityAvailable is number && request.resource.data.quantityAvailable >= 0 &&
+        request.resource.data.pricePerKg is number && request.resource.data.pricePerKg >= 0;
+      allow delete: if isSeller();
+    }
+
+    // Carrier missions & freight bookings:
+    match /freight_missions/{missionId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        request.resource.data.targetWeightTons is number && request.resource.data.targetWeightTons > 0;
+      allow update: if isCarrier() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Listings moderation records: read by all, modified only by admin
+    match /listings_moderation/{listingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Orders and escrow transactions: readable and actionable by participants or admin (Anti-IDOR)
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isAuthenticated() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid
+      ));
+      allow create: if isAuthenticated() &&
+        request.resource.data.totalAmount is number && request.resource.data.totalAmount > 0 &&
+        request.resource.data.buyerId == request.auth.uid;
+      allow update: if isAdmin() || (isAuthenticated() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid
+      ));
+      allow delete: if isAdmin();
+    }
+
+    // Discussions / Chat messages: strictly restricted to conversation participants and admins (OWASP IDOR defense)
+    match /discussions/{discussionId} {
+      allow read: if isAdmin() || (isAuthenticated() && (
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        (resource.data.participants != null && resource.data.participants.hasAny([request.auth.uid]))
+      ));
+      allow create: if isAuthenticated() && (
+        request.resource.data.buyerId == request.auth.uid ||
+        request.resource.data.sellerId == request.auth.uid ||
+        (request.resource.data.participants != null && request.resource.data.participants.hasAny([request.auth.uid])) ||
+        isAdmin()
+      );
+      allow update: if isAdmin() || (isAuthenticated() && (
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        (resource.data.participants != null && resource.data.participants.hasAny([request.auth.uid]))
+      ));
+      allow delete: if isAdmin();
+    }
+  }
+}

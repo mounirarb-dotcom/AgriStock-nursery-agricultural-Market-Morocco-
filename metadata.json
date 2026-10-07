@@ -1,0 +1,11 @@
+{
+  "name": "Morocco Nursery \u0026 Produce Market",
+  "description": "Nursery stock inventory management and agricultural marketplace for buying and selling fruits,vegetables and animals across Morocco, featuring real-time pricing and logistics tracking for local farmers.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
