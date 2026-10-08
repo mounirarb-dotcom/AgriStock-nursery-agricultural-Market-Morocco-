@@ -25,6 +25,7 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   id: 'global_config',
   defaultSellerCommissionRate: 0.045, // 4.5% standard
   defaultProCommissionRate: 0.030,     // 3.0% PRO
+  defaultTransportCommissionRate: 0.080, // 8.0% commission transport / fret
   defaultEscrowGuaranteeRate: 0.015,  // 1.5% garantie séquestre
   minEscrowFeeMAD: 150,                // 150 MAD minimum
   autoHoldDisputedFunds: true,
@@ -609,7 +610,7 @@ export async function savePlatformSettings(
     targetType: 'platform_settings',
     targetId: 'global_config',
     targetSummary: 'Mise à jour des paramètres de la plateforme',
-    details: `Commission vendeur: ${(updated.defaultSellerCommissionRate * 100).toFixed(1)}%, Séquestre: ${(updated.defaultEscrowGuaranteeRate * 100).toFixed(1)}%, Maintenance: ${updated.maintenanceMode ? 'OUI' : 'NON'}`,
+    details: `Commission vendeur: ${(updated.defaultSellerCommissionRate * 100).toFixed(1)}%, PRO: ${(updated.defaultProCommissionRate * 100).toFixed(1)}%, Transport: ${((updated.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1)}%, Séquestre: ${(updated.defaultEscrowGuaranteeRate * 100).toFixed(1)}%, Maintenance: ${updated.maintenanceMode ? 'OUI' : 'NON'}`,
   });
 }
 

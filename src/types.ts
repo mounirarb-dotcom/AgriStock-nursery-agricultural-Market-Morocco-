@@ -420,6 +420,7 @@ export interface PlatformSettings {
   id: string;
   defaultSellerCommissionRate: number; // e.g. 0.045 (4.5%)
   defaultProCommissionRate: number;     // e.g. 0.030 (3.0%)
+  defaultTransportCommissionRate?: number; // e.g. 0.080 (8.0%) Commission transport / fret logistique
   defaultEscrowGuaranteeRate: number;  // e.g. 0.015 (1.5%)
   minEscrowFeeMAD: number;             // e.g. 150 MAD
   categoryCommissionRates?: Record<string, number>;

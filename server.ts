@@ -82,19 +82,20 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   // Permissions Policy
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(self)');
   // Cross Origin Policies
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
 
-  // Hardened Content Security Policy (Removed unsafe-eval, enforced trusted sources)
+  // Hardened Content Security Policy with Google Maps Platform allowances
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' https: data: blob:",
-      "font-src 'self' https: data: https://fonts.gstatic.com",
-      "connect-src 'self' https: ws: wss: https://*.googleapis.com https://*.firebaseio.com https://*.web.app https://*.cloudfunctions.net https://api.open-meteo.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com https://*.googleapis.com",
+      "img-src 'self' https: data: blob: https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.google.com",
+      "font-src 'self' https: data: https://fonts.gstatic.com https://fonts.googleapis.com",
+      "connect-src 'self' https: ws: wss: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.firebaseio.com https://*.web.app https://*.cloudfunctions.net https://api.open-meteo.com",
+      "worker-src 'self' blob:",
       "frame-ancestors 'self' https:",
       "base-uri 'self'",
       "object-src 'none'",

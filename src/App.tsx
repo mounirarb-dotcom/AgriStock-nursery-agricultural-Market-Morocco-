@@ -23,6 +23,7 @@ import { AdminDashboardView } from './components/admin/AdminDashboardView';
 import { SellerDashboardView } from './components/SellerDashboardView';
 import { BuyerDashboardView } from './components/BuyerDashboardView';
 import { NurseryDashboardView } from './components/NurseryDashboardView';
+import { APIProvider } from '@vis.gl/react-google-maps';
 import { CarrierDashboardView } from './components/CarrierDashboardView';
 import { AppModalsContainer } from './components/modals/AppModalsContainer';
 import { HomeView } from './components/HomeView';
@@ -35,6 +36,14 @@ function MainContent() {
     userProfile,
     setIsOfficialComplianceModalOpen,
   } = useApp();
+
+  const [gmpQuotaExceeded, setGmpQuotaExceeded] = React.useState(false);
+
+  useEffect(() => {
+    const handleQuota = () => setGmpQuotaExceeded(true);
+    window.addEventListener('gmp-quota-exceeded', handleQuota);
+    return () => window.removeEventListener('gmp-quota-exceeded', handleQuota);
+  }, []);
 
   useEffect(() => {
     const handleOpenPlayStore = () => {
@@ -51,6 +60,22 @@ function MainContent() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#F8FAF6] flex flex-col font-sans text-stone-900 antialiased">
+      {gmpQuotaExceeded && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
+          <span>
+            Google Maps Platform quota reached. If you are the app owner, visit{' '}
+            <a
+              href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-semibold text-amber-950 hover:text-amber-800"
+            >
+              maps developer site
+            </a>{' '}
+            for instructions to update your account.
+          </span>
+        </div>
+      )}
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 md:pb-8 space-y-4 sm:space-y-6">
@@ -116,11 +141,34 @@ function MainContent() {
 }
 
 export default function App() {
-  return (
+  const mapsApiKey =
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+    (typeof window !== 'undefined' && (window as any).GOOGLE_MAPS_API_KEY) ||
+    '';
+
+  const appContent = (
     <AppProvider>
       <MainContent />
     </AppProvider>
   );
+
+  if (mapsApiKey) {
+    return (
+      <APIProvider
+        apiKey={mapsApiKey}
+        language="fr"
+        region="MA"
+        libraries={['marker']}
+        onError={(err) => {
+          console.warn('[Google Maps] Script loader event:', err);
+        }}
+      >
+        {appContent}
+      </APIProvider>
+    );
+  }
+
+  return appContent;
 }
 
 

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ProduceListing, MoroccanRegion, ProduceCategory } from '../types';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
+import { AgriGoogleMap } from './GoogleMaps/AgriGoogleMap';
 import {
   MapPin,
   Truck,
@@ -119,7 +120,7 @@ export const BUYER_DESTINATION_HUBS: BuyerDestinationHub[] = [
   },
 ];
 
-interface RegionGeoMeta {
+export type RegionGeoMeta = {
   region: MoroccanRegion;
   label: string;
   labelAr: string;
@@ -134,7 +135,9 @@ interface RegionGeoMeta {
   soilType: string;
   irrigationType: string;
   roadDistanceMatrixKm: Record<string, number>; // Distance to buyer hubs in km
-}
+};
+
+export type ClusterInfo = RegionGeoMeta;
 
 export const REGION_GEO_REGISTRY: Record<MoroccanRegion, RegionGeoMeta> = {
   'Souss-Massa (Agadir, Taroudant, Chtouka)': {
@@ -355,6 +358,8 @@ export const REGION_GEO_REGISTRY: Record<MoroccanRegion, RegionGeoMeta> = {
   },
 };
 
+export const CLUSTER_DATA = REGION_GEO_REGISTRY;
+
 interface ClusterMetric {
   region: MoroccanRegion;
   geoMeta: RegionGeoMeta;
@@ -392,6 +397,7 @@ export const ProduceSupplyClusterMap: React.FC<Props> = ({
     selectedRegionFilter !== 'ALL' ? selectedRegionFilter : 'Souss-Massa (Agadir, Taroudant, Chtouka)'
   );
   const [mapMetricDisplay, setMapMetricDisplay] = useState<'volume' | 'distance' | 'price'>('volume');
+  const [mapMode, setMapMode] = useState<'google' | 'schematic'>('google');
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
   // Active buyer destination hub
@@ -589,41 +595,70 @@ export const ProduceSupplyClusterMap: React.FC<Props> = ({
               ))}
             </div>
 
-            {/* Metric pill toggle */}
-            <div className="flex items-center gap-1 bg-stone-900/60 p-1 rounded-xl border border-white/10">
-              <button
-                type="button"
-                onClick={() => setMapMetricDisplay('volume')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                  mapMetricDisplay === 'volume'
-                    ? 'bg-emerald-500 text-stone-950 font-black'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                ⚖️ {tr(language, 'Volumes (T)', 'الكميات (طن)', 'Volumes (T)')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setMapMetricDisplay('distance')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                  mapMetricDisplay === 'distance'
-                    ? 'bg-emerald-500 text-stone-950 font-black'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                🚚 {tr(language, 'Distance (km)', 'المسافة (كلغ)', 'Distance (km)')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setMapMetricDisplay('price')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                  mapMetricDisplay === 'price'
-                    ? 'bg-emerald-500 text-stone-950 font-black'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                💰 {tr(language, 'Prix MAD', 'السعر', 'Price')}
-              </button>
+            {/* Map Mode & Metric pill toggles */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Map Mode Switcher (Google Maps vs Schematic) */}
+              <div className="flex items-center gap-1 bg-stone-900/90 p-1 rounded-xl border border-emerald-500/30">
+                <button
+                  type="button"
+                  onClick={() => setMapMode('google')}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    mapMode === 'google'
+                      ? 'bg-emerald-500 text-stone-950 font-black shadow-xs'
+                      : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  <span>🗺️ Google Maps Live</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMapMode('schematic')}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    mapMode === 'schematic'
+                      ? 'bg-emerald-500 text-stone-950 font-black shadow-xs'
+                      : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  <span>📐 Schéma Régional</span>
+                </button>
+              </div>
+
+              {/* Metric pill toggle */}
+              <div className="flex items-center gap-1 bg-stone-900/60 p-1 rounded-xl border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setMapMetricDisplay('volume')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    mapMetricDisplay === 'volume'
+                      ? 'bg-emerald-500 text-stone-950 font-black'
+                      : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  ⚖️ {tr(language, 'Volumes (T)', 'الكميات (طن)', 'Volumes (T)')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMapMetricDisplay('distance')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    mapMetricDisplay === 'distance'
+                      ? 'bg-emerald-500 text-stone-950 font-black'
+                      : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  🚚 {tr(language, 'Distance (km)', 'المسافة (كلغ)', 'Distance (km)')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMapMetricDisplay('price')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    mapMetricDisplay === 'price'
+                      ? 'bg-emerald-500 text-stone-950 font-black'
+                      : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  💰 {tr(language, 'Prix MAD', 'السعر', 'Price')}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -632,22 +667,65 @@ export const ProduceSupplyClusterMap: React.FC<Props> = ({
       {/* Main Interactive Map & Details Area */}
       {isExpanded && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 bg-stone-100">
-          {/* Left / Center: Interactive SVG Map of Morocco */}
+          {/* Left / Center: Interactive Map of Morocco (Google Maps or SVG) */}
           <div className="lg:col-span-8 p-3 sm:p-5 relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#f0f4f1] via-[#e8efe9] to-[#dce8de]">
-            {/* Map Legend Overlay */}
-            <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md p-2.5 px-3 rounded-2xl border border-stone-200/80 shadow-xs text-xs space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-stone-800 text-[11px]">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping" />
-                <span>Gisements actifs ({produceListings.length} lots référencés)</span>
-              </div>
-              <div className="text-[10px] text-stone-500 flex items-center gap-2">
-                <span>📍 Destination : <strong>{activeBuyerHub.city}</strong></span>
-              </div>
-            </div>
+            {mapMode === 'google' ? (
+              <div className="space-y-3">
+                <AgriGoogleMap
+                  produceListings={produceListings}
+                  selectedRegion={selectedRegionCluster}
+                  onSelectRegion={(reg) => {
+                    setSelectedRegionCluster(reg as MoroccanRegion | null);
+                    if (reg && onSelectRegionFilter) {
+                      onSelectRegionFilter(reg as MoroccanRegion);
+                    }
+                  }}
+                  selectedBuyerHubId={selectedBuyerHubId}
+                  onSelectBuyerHubId={setSelectedBuyerHubId}
+                  activeCategoryFilter={activeCategoryFilter}
+                  height="520px"
+                />
 
-            {/* SVG Visual Canvas */}
-            <div className="w-full flex items-center justify-center py-2">
-              <svg
+                {/* Quick Distance & Nearest Source Bar */}
+                <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-extrabold text-[10px] uppercase">
+                      {tr(language, 'Bassin le plus proche :', 'الأقرب مسافة لوجهتك :', 'Nearest Basin :')}
+                    </span>
+                    <span className="font-black text-stone-900">
+                      {sortedClusters[0]?.geoMeta.hubCity} ({sortedClusters[0]?.distanceKmToSelectedHub} km • ~{sortedClusters[0]?.transitDurationHours}h)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-stone-500">
+                      {tr(language, 'Volume dispo total :', 'مجموع الحصص الجاهزة :', 'Total Volume :')}{' '}
+                      <strong className="text-emerald-800">
+                        {((Array.from(clusterMetrics.values()) as ClusterMetric[])
+                          .reduce((acc: number, c: ClusterMetric) => acc + (c.totalVolumeTonnes || 0), 0) || 0)
+                          .toLocaleString()}{' '}
+                        Tonnes
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Map Legend Overlay */}
+                <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md p-2.5 px-3 rounded-2xl border border-stone-200/80 shadow-xs text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-stone-800 text-[11px]">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping" />
+                    <span>Gisements actifs ({produceListings.length} lots référencés)</span>
+                  </div>
+                  <div className="text-[10px] text-stone-500 flex items-center gap-2">
+                    <span>📍 Destination : <strong>{activeBuyerHub.city}</strong></span>
+                  </div>
+                </div>
+
+                {/* SVG Visual Canvas */}
+                <div className="w-full flex items-center justify-center py-2">
+                  <svg
                 viewBox="0 0 840 560"
                 className="w-full max-h-[500px] select-none filter drop-shadow-sm"
                 aria-label="Carte des bassins de production agricole du Maroc"
@@ -911,9 +989,11 @@ export const ProduceSupplyClusterMap: React.FC<Props> = ({
                 </span>
               </div>
             </div>
-          </div>
+          </>
+        )}
+      </div>
 
-          {/* Right Column: Active Region Dossier & Selected Source Details */}
+      {/* Right Column: Active Region Dossier & Selected Source Details */}
           <div className="lg:col-span-4 bg-white border-t lg:border-t-0 lg:border-l border-stone-200 p-4 sm:p-5 flex flex-col justify-between space-y-4">
             {activeCluster ? (
               <div className="space-y-4">

@@ -73,6 +73,7 @@ export default defineConfig(({ mode }) => {
             'vendor-export-tools': ['jspdf', 'xlsx'],
             'vendor-ui-motion': ['lucide-react', 'motion'],
             'vendor-dataviz': ['d3', 'qrcode'],
+            'vendor-maps': ['@vis.gl/react-google-maps'],
           },
         },
       },

@@ -449,6 +449,7 @@ interface AppContextType {
     reason?: string
   ) => Promise<void>;
   updateTransactionCommission: (transactionId: string, newRate: number) => Promise<void>;
+  updateTransportCommission: (bookingId: string, newRate: number) => Promise<void>;
   updateTransactionStatus: (transactionId: string, status: PlatformStatus, reason?: string) => Promise<void>;
   resolveDispute: (
     transactionId: string,
@@ -3835,6 +3836,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [adminSession, loadAuditLogs]
   );
 
+  const updateTransportCommission = useCallback(
+    async (bookingId: string, newRate: number) => {
+      if (!adminSession) return;
+      setTransportBookings((prev) =>
+        prev.map((b) => {
+          if (b.id === bookingId) {
+            const newCommissionMAD = Math.round(b.totalPriceMAD * newRate);
+            const newCarrierPayoutMAD = b.totalPriceMAD - newCommissionMAD;
+            return {
+              ...b,
+              platformCommissionMAD: newCommissionMAD,
+              carrierPayoutMAD: newCarrierPayoutMAD,
+            };
+          }
+          return b;
+        })
+      );
+      await logAdminAction({
+        adminEmail: adminSession.email,
+        adminName: adminSession.displayName,
+        actionType: 'UPDATE_COMMISSION',
+        targetType: 'system',
+        targetId: bookingId,
+        targetSummary: `Ajustement commission transport #${bookingId}`,
+        details: `Nouveau taux commission transport: ${(newRate * 100).toFixed(1)}%`,
+        newValue: `${(newRate * 100).toFixed(1)}%`,
+      });
+      await loadAuditLogs();
+    },
+    [adminSession, loadAuditLogs]
+  );
+
   const updateTransactionStatus = useCallback(
     async (transactionId: string, status: PlatformStatus, reason?: string) => {
       if (!adminSession) return;
@@ -4612,6 +4645,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateUserRoleByAdmin,
         moderateListing,
         updateTransactionCommission,
+        updateTransportCommission,
         updateTransactionStatus,
         resolveDispute,
         toggleBoostListing,

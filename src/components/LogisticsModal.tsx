@@ -19,6 +19,27 @@ import { useApp } from '../context/AppContext';
 import { CargoType, VehicleType } from '../types';
 import { LOGISTICS_DISTANCES } from '../data/monetizationData';
 import FinanceService from '../services/FinanceService';
+import { Map, AdvancedMarker, Pin, useApiIsLoaded } from '@vis.gl/react-google-maps';
+
+const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  Agadir: { lat: 30.4278, lng: -9.5981 },
+  Casablanca: { lat: 33.5731, lng: -7.5898 },
+  Rabat: { lat: 34.0209, lng: -6.8416 },
+  Marrakech: { lat: 31.6295, lng: -7.9811 },
+  Tanger: { lat: 35.7595, lng: -5.834 },
+  'Fès': { lat: 34.0181, lng: -5.0078 },
+  'Meknès': { lat: 33.8938, lng: -5.5516 },
+  'Kénitra': { lat: 34.261, lng: -6.5802 },
+  Oujda: { lat: 34.6867, lng: -1.9114 },
+  Berkane: { lat: 34.92, lng: -2.32 },
+  'Béni Mellal': { lat: 32.3394, lng: -6.3608 },
+  Taroudant: { lat: 30.4703, lng: -8.877 },
+  'El Jadida': { lat: 33.2316, lng: -8.5007 },
+  Safi: { lat: 32.2994, lng: -9.2372 },
+  Larache: { lat: 35.1932, lng: -6.1557 },
+  Dakhla: { lat: 23.7136, lng: -15.9387 },
+  'Laâyoune': { lat: 27.1253, lng: -13.1625 },
+};
 
 export const LogisticsModal: React.FC = () => {
   const {
@@ -27,6 +48,7 @@ export const LogisticsModal: React.FC = () => {
     logisticsInitialData,
     createTransportBooking,
     userProfile,
+    platformSettings,
   } = useApp();
 
   const [originCity, setOriginCity] = useState('Agadir');
@@ -43,6 +65,15 @@ export const LogisticsModal: React.FC = () => {
   const [contactPhone, setContactPhone] = useState(userProfile.phone || userProfile.whatsapp || '');
   const [isSuccess, setIsSuccess] = useState(false);
   const [bookingRef, setBookingRef] = useState('');
+
+  const apiKey =
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+    (typeof window !== 'undefined' && (window as any).GOOGLE_MAPS_API_KEY) ||
+    '';
+  const isMapsLoaded = useApiIsLoaded();
+
+  const origCoord = CITY_COORDINATES[originCity] || { lat: 30.4278, lng: -9.5981 };
+  const destCoord = CITY_COORDINATES[destinationCity] || { lat: 33.5731, lng: -7.5898 };
 
   useEffect(() => {
     if (logisticsInitialData) {
@@ -353,6 +384,52 @@ export const LogisticsModal: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* Visual Route Preview on Google Maps */}
+            {Boolean(apiKey) && (
+              <div className="rounded-xl overflow-hidden border border-stone-200 shadow-xs relative bg-stone-100">
+                <div className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-stone-700 shadow-xs flex items-center gap-1 border border-stone-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Aperçu Trajet Google Maps ({distance} km)</span>
+                </div>
+                <div style={{ height: '150px', width: '100%' }}>
+                  {isMapsLoaded ? (
+                    <Map
+                      mapId="DEMO_MAP_ID"
+                      defaultCenter={{
+                        lat: (origCoord.lat + destCoord.lat) / 2,
+                        lng: (origCoord.lng + destCoord.lng) / 2,
+                      }}
+                      defaultZoom={5}
+                      gestureHandling="greedy"
+                      disableDefaultUI={true}
+                      internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      <AdvancedMarker position={origCoord} title={`Départ : ${originCity}`}>
+                        <Pin background="#047857" borderColor="#ffffff" glyphColor="#ffffff" scale={0.85}>
+                          <span className="text-[9px]">🌱</span>
+                        </Pin>
+                      </AdvancedMarker>
+                      <AdvancedMarker position={destCoord} title={`Arrivée : ${destinationCity}`}>
+                        <Pin background="#2563eb" borderColor="#ffffff" glyphColor="#ffffff" scale={0.85}>
+                          <span className="text-[9px]">🏢</span>
+                        </Pin>
+                      </AdvancedMarker>
+                    </Map>
+                  ) : (
+                    <div className="w-full h-full bg-stone-900 flex flex-col items-center justify-center text-center p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-1">
+                        <span>{originCity}</span>
+                        <span className="text-stone-400">➔</span>
+                        <span className="text-blue-400">{destinationCity}</span>
+                      </div>
+                      <p className="text-[11px] text-stone-400">{distance} km de route nationale • ~{transitHours}h estimées</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Instant Freight Quotation & Platform Commission */}
             <div className="bg-stone-900 text-white rounded-xl p-4 space-y-2.5">

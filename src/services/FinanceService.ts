@@ -129,14 +129,20 @@ export class FinanceService {
   /**
    * Calcul des flux financiers du transport / logistique
    */
-  public static calculateLogisticsBreakdown(estimatedPriceMAD: number): LogisticsFinancialBreakdown {
+  public static calculateLogisticsBreakdown(
+    estimatedPriceMAD: number,
+    customCommissionRate?: number
+  ): LogisticsFinancialBreakdown {
     const safePrice = Math.max(0, Number(estimatedPriceMAD) || 0);
-    const platformCommissionMAD = roundFinancial(safePrice * LOGISTICS_COMMISSION_RATE);
+    const rate = typeof customCommissionRate === 'number' && customCommissionRate >= 0
+      ? customCommissionRate
+      : LOGISTICS_COMMISSION_RATE;
+    const platformCommissionMAD = roundFinancial(safePrice * rate);
     const carrierPayoutMAD = roundFinancial(safePrice - platformCommissionMAD);
 
     return {
       estimatedPriceMAD: safePrice,
-      commissionRate: LOGISTICS_COMMISSION_RATE,
+      commissionRate: rate,
       platformCommissionMAD,
       carrierPayoutMAD,
     };
