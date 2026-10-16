@@ -54,6 +54,30 @@ const ai = process.env.GEMINI_API_KEY
     })
   : null;
 
+// Helper: Centralized client IP resolver
+function getClientIp(req: Request): string {
+  return (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.ip || 'unknown';
+}
+
+// Helper: Secure transaction & escrow ID generator
+function generateTransactionId(prefix: string, digits = 4): string {
+  const randomPart = Math.floor(Math.pow(10, digits - 1) + Math.random() * (Math.pow(10, digits) - Math.pow(10, digits - 1)));
+  return `${prefix}-${Date.now()}-${randomPart}`;
+}
+
+const SECURITY_ORIGINS = {
+  GOOGLE_MAPS: [
+    'https://maps.googleapis.com',
+    'https://*.googleapis.com',
+    'https://*.gstatic.com',
+  ],
+  FIREBASE: [
+    'https://*.firebaseio.com',
+    'https://*.web.app',
+    'https://*.cloudfunctions.net',
+  ],
+};
+
 // Trust proxy for rate limiting behind Cloud Run / reverse proxies
 app.set('trust proxy', 1);
 
@@ -90,11 +114,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com https://*.googleapis.com",
-      "img-src 'self' https: data: blob: https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.google.com",
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')}`,
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')}`,
+      `img-src 'self' https: data: blob: ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')} https://*.google.com`,
       "font-src 'self' https: data: https://fonts.gstatic.com https://fonts.googleapis.com",
-      "connect-src 'self' https: ws: wss: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.firebaseio.com https://*.web.app https://*.cloudfunctions.net https://api.open-meteo.com",
+      `connect-src 'self' https: ws: wss: ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')} https://*.google.com ${SECURITY_ORIGINS.FIREBASE.join(' ')} https://api.open-meteo.com`,
       "worker-src 'self' blob:",
       "frame-ancestors 'self' https:",
       "base-uri 'self'",
@@ -110,7 +134,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // ============================================================================
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
-  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.ip || 'unknown';
+  const clientIp = getClientIp(req);
 
   res.on('finish', () => {
     const duration = Date.now() - start;
@@ -133,7 +157,7 @@ const rateLimitStore = new Map<string, RateLimitBucket>();
 
 function apiRateLimiter(maxRequests = 60, windowMs = 60000) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.ip || 'unknown';
+    const clientIp = getClientIp(req);
     const key = `${clientIp}:${req.baseUrl || req.path}`;
     const now = Date.now();
 
@@ -489,7 +513,7 @@ app.post('/api/cmi/payment/create', (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'orderId et amount requis' });
   }
 
-  const transactionId = `CMI-MA-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const transactionId = generateTransactionId('CMI-MA', 4);
   const authorizationCode = `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
 
   res.json({
@@ -521,7 +545,7 @@ app.get('/api/cmi/payment/status/:orderId', (req: Request, res: Response) => {
 
 app.post('/api/cmi/escrow/create', (req: Request, res: Response) => {
   const { orderId, amount, sellerEmail, buyerEmail, releaseCondition } = req.body;
-  const escrowId = `ESCROW-CMI-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+  const escrowId = generateTransactionId('ESCROW-CMI', 3);
 
   res.json({
     success: true,
@@ -543,7 +567,7 @@ app.post('/api/cmi/escrow/release/:orderId', (req: Request, res: Response) => {
     orderId,
     status: 'RELEASED',
     releasedAmountMAD: 0,
-    transferReference: `VIR-CMI-MA-${Date.now()}`,
+    transferReference: generateTransactionId('VIR-CMI-MA', 4),
     timestamp: new Date().toISOString(),
   });
 });

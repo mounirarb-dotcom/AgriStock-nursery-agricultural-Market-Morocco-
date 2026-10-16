@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Info,
   HelpCircle,
+  Search,
+  Smartphone,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ExcelStockService, ExcelStockType, ParseResult } from '../services/ExcelStockService';
@@ -29,7 +31,7 @@ interface ExcelStockModalProps {
 export const ExcelStockModal: React.FC<ExcelStockModalProps> = ({
   isOpen,
   onClose,
-  initialType = 'produce',
+  initialType,
 }) => {
   const {
     language,
@@ -47,14 +49,30 @@ export const ExcelStockModal: React.FC<ExcelStockModalProps> = ({
     setActiveTab,
   } = useApp();
 
-  const [activeTab, setActiveTabState] = useState<'template' | 'export' | 'import'>('import');
+  const isNurseryUser = canManageNursery || userProfile.role === 'nursery';
+  const isCarrierUser = canManageCarrier || userProfile.role === 'carrier';
+
+  const [activeTab, setActiveTabState] = useState<'browse' | 'template' | 'export' | 'import'>('browse');
+  const [showAllDatabases, setShowAllDatabases] = useState(false);
+  const [browseSearchTerm, setBrowseSearchTerm] = useState('');
+
   const [selectedStockType, setSelectedStockType] = useState<ExcelStockType>(() => {
     if (initialType) return initialType;
-    if (canManageNursery) return 'nursery';
-    if (canManageCarrier) return 'carrier';
+    if (isNurseryUser) return 'nursery';
+    if (isCarrierUser) return 'carrier';
     if (userProfile.role === 'buyer') return 'buyer';
     return 'produce';
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialType) {
+        setSelectedStockType(initialType);
+      } else if (isNurseryUser) {
+        setSelectedStockType('nursery');
+      }
+    }
+  }, [isOpen, initialType, isNurseryUser]);
 
   // State for file upload & parsing
   const [isDragging, setIsDragging] = useState(false);
@@ -113,6 +131,16 @@ export const ExcelStockModal: React.FC<ExcelStockModalProps> = ({
         return [];
     }
   };
+
+  const liveStockItems = getLiveStockItems(selectedStockType);
+  const filteredBrowseItems = liveStockItems.filter((item: any) => {
+    if (!browseSearchTerm.trim()) return true;
+    const term = browseSearchTerm.trim().toLowerCase();
+    const name = (item.variety || item.title || item.name || item.model || '').toLowerCase();
+    const species = (item.species || item.category || item.type || '').toLowerCase();
+    const batch = (item.batchNumber || item.referenceNumber || item.licensePlate || '').toLowerCase();
+    return name.includes(term) || species.includes(term) || batch.includes(term);
+  });
 
   const handleDownloadTemplate = (withSampleData: boolean) => {
     try {
@@ -237,94 +265,258 @@ export const ExcelStockModal: React.FC<ExcelStockModalProps> = ({
         </div>
 
         {/* Database Role / Type Selector */}
-        <div className="px-6 py-3 bg-stone-100/80 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="px-4 sm:px-6 py-3 bg-stone-100/90 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center space-x-2 text-xs font-semibold text-stone-700">
             <Database className="w-4 h-4 text-emerald-600" />
             <span>Base de données ciblée :</span>
+            {isNurseryUser && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                Pépinières Agréées
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {[
-              { type: 'nursery_ornamental', label: '🌸 Pépinière Ornementale & Paysage', badge: `${getStockCount('nursery_ornamental')} lots` },
-              { type: 'nursery', label: '🌱 Pépinière Arboriculture & Fruitiers', badge: `${getStockCount('nursery')} lots` },
-              { type: 'produce', label: '🍅 Récoltes & Maraîchage', badge: `${getStockCount('produce')} lots` },
-              { type: 'farm_standing', label: '🌳 Vergers sur Pied (Ha)', badge: `${getStockCount('farm_standing')} ha` },
-              { type: 'carrier', label: '🚛 Logistique & Flotte', badge: `${getStockCount('carrier')} camions` },
-            ].map(item => {
-              const isSelected = selectedStockType === item.type;
-              return (
-                <button
-                  key={item.type}
-                  onClick={() => {
-                    setSelectedStockType(item.type as ExcelStockType);
-                    setParseResult(null);
-                    setImportSuccessMessage(null);
-                    setImportErrorMessage(null);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
-                    isSelected
-                      ? 'bg-emerald-700 text-white shadow-sm font-bold ring-2 ring-emerald-600/30'
-                      : 'bg-white text-stone-700 hover:bg-stone-200/80 border border-stone-300'
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      isSelected ? 'bg-emerald-800 text-emerald-200' : 'bg-stone-100 text-stone-500'
+              { type: 'nursery', label: '🌱 Pépinière Arboricole & Fruitiers', badge: `${getStockCount('nursery')} lots`, isNursery: true },
+              { type: 'nursery_ornamental', label: '🌸 Pépinière Ornementale', badge: `${getStockCount('nursery_ornamental')} lots`, isNursery: true },
+              { type: 'produce', label: '🍅 Récoltes & Maraîchage', badge: `${getStockCount('produce')} lots`, isNursery: false },
+              { type: 'farm_standing', label: '🌳 Vergers sur Pied (Ha)', badge: `${getStockCount('farm_standing')} ha`, isNursery: false },
+              { type: 'carrier', label: '🚛 Logistique & Flotte', badge: `${getStockCount('carrier')} camions`, isNursery: false },
+            ]
+              .filter(item => !isNurseryUser || showAllDatabases || item.isNursery)
+              .map(item => {
+                const isSelected = selectedStockType === item.type;
+                return (
+                  <button
+                    key={item.type}
+                    onClick={() => {
+                      setSelectedStockType(item.type as ExcelStockType);
+                      setParseResult(null);
+                      setImportSuccessMessage(null);
+                      setImportErrorMessage(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                      isSelected
+                        ? 'bg-emerald-700 text-white shadow-sm font-bold ring-2 ring-emerald-600/30'
+                        : 'bg-white text-stone-700 hover:bg-stone-200/80 border border-stone-300'
                     }`}
                   >
-                    {item.badge}
-                  </span>
-                </button>
-              );
-            })}
+                    <span>{item.label}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        isSelected ? 'bg-emerald-800 text-emerald-200' : 'bg-stone-100 text-stone-500'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  </button>
+                );
+              })}
+
+            {isNurseryUser && (
+              <button
+                type="button"
+                onClick={() => setShowAllDatabases(!showAllDatabases)}
+                className="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 px-2.5 py-1.5 rounded-xl border border-emerald-300 transition cursor-pointer"
+              >
+                {showAllDatabases ? '🌿 Afficher uniquement bases pépinières' : '+ Afficher autres filières'}
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Navigation Tabs (Import en Masse, Télécharger Modèle, Exporter Stock) */}
-        <div className="px-6 border-b border-stone-200 bg-white flex space-x-6 text-sm font-semibold shrink-0">
+        {/* Navigation Tabs (Consulter les Lots, Import en Masse, Télécharger Modèle, Exporter Stock) */}
+        <div className="px-4 sm:px-6 border-b border-stone-200 bg-white flex space-x-3 sm:space-x-6 text-xs sm:text-sm font-semibold shrink-0 overflow-x-auto">
+          <button
+            onClick={() => setActiveTabState('browse')}
+            className={`py-3 sm:py-3.5 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-all whitespace-nowrap ${
+              activeTab === 'browse'
+                ? 'border-emerald-600 text-emerald-800 font-bold'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-emerald-600" />
+            <span>Consulter la Base ({filteredBrowseItems.length} lots)</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold">
+              Direct
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTabState('import')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition-all ${
+            className={`py-3 sm:py-3.5 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-all whitespace-nowrap ${
               activeTab === 'import'
                 ? 'border-emerald-600 text-emerald-800 font-bold'
                 : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             <Upload className="w-4 h-4" />
-            <span>1. Importer des Lots en Masse (Bulk Import)</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold">
-              Rapide
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTabState('template')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition-all ${
-              activeTab === 'template'
-                ? 'border-emerald-600 text-emerald-800 font-bold'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <FileDown className="w-4 h-4" />
-            <span>2. Modèles Excel Vierge & Variables Dédiées</span>
+            <span>1. Importer en Masse (Excel)</span>
           </button>
 
           <button
             onClick={() => setActiveTabState('export')}
-            className={`py-3.5 border-b-2 flex items-center space-x-2 transition-all ${
+            className={`py-3 sm:py-3.5 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-all whitespace-nowrap ${
               activeTab === 'export'
                 ? 'border-emerald-600 text-emerald-800 font-bold'
                 : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             <Download className="w-4 h-4" />
-            <span>3. Exporter l'Inventaire Actuel (.xlsx)</span>
+            <span>2. Exporter (.xlsx)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTabState('template')}
+            className={`py-3 sm:py-3.5 border-b-2 flex items-center space-x-1.5 sm:space-x-2 transition-all whitespace-nowrap ${
+              activeTab === 'template'
+                ? 'border-emerald-600 text-emerald-800 font-bold'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <FileDown className="w-4 h-4" />
+            <span>3. Modèle Vierge</span>
           </button>
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-stone-50/50">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-stone-50/50">
+          {/* ======================================================== */}
+          {/* TAB 0: CONSULTER LA BASE EN DIRECT (MOBILE & DESKTOP)     */}
+          {/* ======================================================== */}
+          {activeTab === 'browse' && (
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={browseSearchTerm}
+                    onChange={(e) => setBrowseSearchTerm(e.target.value)}
+                    placeholder="Filtrer les lots par nom, variété, espèce, n° lot..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-stone-200 focus:outline-emerald-600"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-stone-600 whitespace-nowrap">
+                    {filteredBrowseItems.length} lot(s)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTabState('import')}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Importer</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportLiveStock}
+                    className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs flex items-center gap-1.5 border border-stone-300 transition whitespace-nowrap cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export .xlsx</span>
+                  </button>
+                </div>
+              </div>
+
+              {filteredBrowseItems.length === 0 ? (
+                <div className="p-8 text-center bg-white rounded-2xl border border-stone-200 text-stone-500 space-y-2">
+                  <Database className="w-8 h-8 text-stone-300 mx-auto" />
+                  <p className="text-sm font-semibold">Aucun lot dans cette base de données</p>
+                  <p className="text-xs text-stone-400">Importez des lots ou utilisez un modèle Excel pour alimenter cette base.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Vue Cartes Mobile (< md) */}
+                  <div className="grid grid-cols-1 gap-3 md:hidden">
+                    {filteredBrowseItems.map((item: any, idx: number) => (
+                      <div key={item.id || idx} className="p-4 rounded-xl bg-white border border-stone-200 shadow-xs space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-bold text-sm text-stone-900">{item.variety || item.title || item.name || 'Lot Sans Nom'}</h4>
+                            <p className="text-xs text-stone-500">{item.species || item.category || 'Standard'}</p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            {item.onssaStatus || item.status || 'Certifié'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-stone-50 text-xs">
+                          <div>
+                            <span className="text-stone-400 block text-[10px]">Quantité Dispo :</span>
+                            <strong className="text-stone-900 font-mono">{(item.quantityAvailable ?? item.quantityTonnes ?? item.quantity ?? 0).toLocaleString()} {item.unit || 'plants'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-400 block text-[10px]">Prix Unitaire :</span>
+                            <strong className="text-emerald-700 font-mono">{item.unitPriceMAD ?? item.pricePerKgMAD ?? item.priceMAD ?? 0} MAD</strong>
+                          </div>
+                          {item.batchNumber && (
+                            <div>
+                              <span className="text-stone-400 block text-[10px]">N° Lot :</span>
+                              <span className="font-mono text-stone-600 font-semibold">{item.batchNumber}</span>
+                            </div>
+                          )}
+                          {item.rootstock && (
+                            <div>
+                              <span className="text-stone-400 block text-[10px]">Porte-greffe :</span>
+                              <span className="text-stone-700 font-semibold">{item.rootstock}</span>
+                            </div>
+                          )}
+                          {item.phytosanitaryPassportNumber && (
+                            <div className="col-span-2">
+                              <span className="text-stone-400 block text-[10px]">Passeport Sanitaire ONSSA :</span>
+                              <span className="font-mono text-emerald-800 font-bold">{item.phytosanitaryPassportNumber}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Vue Tableau Desktop (hidden md:block) */}
+                  <div className="hidden md:block overflow-hidden rounded-xl bg-white border border-stone-200 shadow-xs">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-stone-50 text-stone-600 font-bold border-b border-stone-200">
+                        <tr>
+                          <th className="p-3">Désignation & Variété</th>
+                          <th className="p-3">Catégorie / Espèce</th>
+                          <th className="p-3">Porte-greffe & Stade</th>
+                          <th className="p-3">Agrément ONSSA</th>
+                          <th className="p-3 text-right">Quantité Dispo</th>
+                          <th className="p-3 text-right">Prix Unitaire</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100 font-mono">
+                        {filteredBrowseItems.map((item: any, idx: number) => (
+                          <tr key={item.id || idx} className="hover:bg-stone-50">
+                            <td className="p-3 font-sans">
+                              <span className="font-bold text-stone-900 block">{item.variety || item.title || item.name}</span>
+                              {item.batchNumber && <span className="font-mono text-[10px] text-stone-500">Lot: {item.batchNumber}</span>}
+                            </td>
+                            <td className="p-3 font-sans text-stone-600">{item.species || item.category}</td>
+                            <td className="p-3 font-sans text-stone-600">{item.rootstock || 'Semis direct'}</td>
+                            <td className="p-3 font-sans">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                {item.onssaStatus || item.status || 'Certifié'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-bold text-stone-900">
+                              {(item.quantityAvailable ?? item.quantityTonnes ?? item.quantity ?? 0).toLocaleString()} {item.unit || 'plants'}
+                            </td>
+                            <td className="p-3 text-right font-bold text-emerald-700">
+                              {item.unitPriceMAD ?? item.pricePerKgMAD ?? item.priceMAD ?? 0} MAD
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           {/* ======================================================== */}
           {/* TAB 1: IMPORTER DES LOTS EN MASSE                         */}
           {/* ======================================================== */}

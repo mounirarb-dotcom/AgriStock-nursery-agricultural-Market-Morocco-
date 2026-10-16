@@ -100,6 +100,7 @@ export const AdminDashboardView: React.FC = () => {
     moderateListing,
     escrowTransactions,
     updateTransactionCommission,
+    updateTransportCommission,
     updateTransactionStatus,
     resolveDispute,
     toggleBoostListing,
@@ -160,8 +161,11 @@ export const AdminDashboardView: React.FC = () => {
     reference: string;
     currentRate: number;
     subtotal: number;
+    type?: 'escrow' | 'transport';
+    carrierName?: string;
   } | null>(null);
   const [newCommissionPercentInput, setNewCommissionPercentInput] = useState('4.5');
+  const [commissionViewType, setCommissionViewType] = useState<'all' | 'escrow' | 'transport'>('all');
 
   const [selectedDisputeForArbitrage, setSelectedDisputeForArbitrage] = useState<string | null>(null);
   const [disputeArbitrageRuling, setDisputeArbitrageRuling] = useState<'refund_buyer' | 'pay_seller' | 'split_50_50'>('split_50_50');
@@ -171,6 +175,7 @@ export const AdminDashboardView: React.FC = () => {
   const [settingsForm, setSettingsForm] = useState({
     defaultSellerCommissionRate: (platformSettings.defaultSellerCommissionRate * 100).toString(),
     defaultProCommissionRate: (platformSettings.defaultProCommissionRate * 100).toString(),
+    defaultTransportCommissionRate: ((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toString(),
     defaultEscrowGuaranteeRate: (platformSettings.defaultEscrowGuaranteeRate * 100).toString(),
     minEscrowFeeMAD: platformSettings.minEscrowFeeMAD.toString(),
     platformNoticeBanner: platformSettings.platformNoticeBanner || '',
@@ -193,6 +198,8 @@ export const AdminDashboardView: React.FC = () => {
   const metrics = useMemo(() => {
     const totalGMVMAD = escrowTransactions.reduce((acc, tx) => acc + tx.subtotalAmountMAD, 0);
     const totalCommissionsMAD = escrowTransactions.reduce((acc, tx) => acc + tx.platformCommissionMAD, 0);
+    const totalTransportCommissionsMAD = transportBookings.reduce((acc, b) => acc + (b.platformCommissionMAD || 0), 0);
+    const totalGlobalCommissionsMAD = totalCommissionsMAD + totalTransportCommissionsMAD;
     const totalEscrowHeldMAD = escrowTransactions
       .filter((tx) => tx.status === 'funds_held' || tx.status === 'in_transit')
       .reduce((acc, tx) => acc + tx.totalPaidByBuyerMAD, 0);
@@ -211,6 +218,8 @@ export const AdminDashboardView: React.FC = () => {
     return {
       totalGMVMAD,
       totalCommissionsMAD,
+      totalTransportCommissionsMAD,
+      totalGlobalCommissionsMAD,
       totalEscrowHeldMAD,
       disputedCount,
       totalUsers: userAccountsList.length,
@@ -347,6 +356,7 @@ export const AdminDashboardView: React.FC = () => {
     await updatePlatformSettings({
       defaultSellerCommissionRate: parseFloat(settingsForm.defaultSellerCommissionRate) / 100,
       defaultProCommissionRate: parseFloat(settingsForm.defaultProCommissionRate) / 100,
+      defaultTransportCommissionRate: parseFloat(settingsForm.defaultTransportCommissionRate) / 100,
       defaultEscrowGuaranteeRate: parseFloat(settingsForm.defaultEscrowGuaranteeRate) / 100,
       minEscrowFeeMAD: parseFloat(settingsForm.minEscrowFeeMAD),
       platformNoticeBanner: settingsForm.platformNoticeBanner,
@@ -1253,90 +1263,246 @@ export const AdminDashboardView: React.FC = () => {
         )}
 
         {/* ====================================================
-            6. COMMISSIONS & PAIEMENTS
+            6. COMMISSIONS & PAIEMENTS (VENTES & TRANSPORT)
            ==================================================== */}
         {activeSubTab === 'commissions' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-5 rounded-xl bg-stone-900 border border-stone-800">
                 <span className="text-xs text-stone-400">Total Commissions Encaissées</span>
                 <div className="text-2xl font-black text-purple-300 font-mono mt-1">
-                  {metrics.totalCommissionsMAD.toLocaleString()} MAD
+                  {metrics.totalGlobalCommissionsMAD.toLocaleString()} MAD
                 </div>
-                <p className="text-xs text-stone-400 mt-1">Chiffre d'affaires net AGRISTOCK Maroc</p>
+                <div className="flex items-center justify-between text-[11px] text-stone-400 mt-1">
+                  <span>Ventes: {metrics.totalCommissionsMAD.toLocaleString()} MAD</span>
+                  <span className="text-cyan-400">Fret: {metrics.totalTransportCommissionsMAD.toLocaleString()} MAD</span>
+                </div>
               </div>
 
               <div className="p-5 rounded-xl bg-stone-900 border border-stone-800">
-                <span className="text-xs text-stone-400">Taux Standard Actif</span>
+                <span className="text-xs text-stone-400">Taux Vendeur Standard</span>
                 <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
                   {(platformSettings.defaultSellerCommissionRate * 100).toFixed(1)} %
                 </div>
-                <p className="text-xs text-stone-400 mt-1">Appliqué sur les vendeurs standards</p>
+                <p className="text-xs text-stone-400 mt-1">Sur transactions marché & pépinières</p>
               </div>
 
               <div className="p-5 rounded-xl bg-stone-900 border border-stone-800">
-                <span className="text-xs text-stone-400">Taux Préférentiel Producteur PRO</span>
+                <span className="text-xs text-stone-400">Taux Producteur PRO</span>
                 <div className="text-2xl font-black text-amber-400 font-mono mt-1">
                   {(platformSettings.defaultProCommissionRate * 100).toFixed(1)} %
                 </div>
-                <p className="text-xs text-stone-400 mt-1">Avantage abonnement annuel PRO</p>
+                <p className="text-xs text-stone-400 mt-1">Tarif préférentiel abonnement PRO</p>
+              </div>
+
+              <div className="p-5 rounded-xl bg-gradient-to-br from-cyan-950/80 via-stone-900 to-stone-900 border border-cyan-800/80 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-cyan-300 font-bold">Commission Transport</span>
+                  <span className="px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-200 border border-cyan-700 text-[10px] font-bold">
+                    🚛 Fret & Flotte
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-cyan-300 font-mono mt-1">
+                  {((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1)} %
+                </div>
+                <p className="text-xs text-stone-400 mt-1">
+                  Total prélevé fret: <strong className="text-cyan-300">{metrics.totalTransportCommissionsMAD.toLocaleString()} MAD</strong>
+                </p>
               </div>
             </div>
 
-            {/* Commissions details table with override capability */}
-            <div className="p-5 rounded-xl bg-stone-900 border border-stone-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-stone-100">
-                  Gestion des Commissions Spécifiques par Transaction
-                </h3>
-                <span className="text-xs text-stone-400">
-                  L'administrateur peut réajuster le taux d'une transaction spéciale à tout moment.
-                </span>
+            {/* Commissions View Selector Tabs */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-stone-900/90 border border-stone-800 rounded-xl">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCommissionViewType('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    commissionViewType === 'all'
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                  }`}
+                >
+                  Toutes ({escrowTransactions.length + transportBookings.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCommissionViewType('escrow')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    commissionViewType === 'escrow'
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                  }`}
+                >
+                  Transactions Ventes & Séquestre ({escrowTransactions.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCommissionViewType('transport')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                    commissionViewType === 'transport'
+                      ? 'bg-cyan-600 text-white shadow-xs'
+                      : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                  }`}
+                >
+                  <span>🚛 Commissions Transport & Fret ({transportBookings.length})</span>
+                </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-stone-300">
-                  <thead className="bg-stone-950/80 text-stone-400 uppercase text-[10px] tracking-wider border-b border-stone-800">
-                    <tr>
-                      <th className="py-3 px-4 font-bold">Réf. Transaction</th>
-                      <th className="py-3 px-4 font-bold">Sous-total Vente</th>
-                      <th className="py-3 px-4 font-bold">Taux Commission</th>
-                      <th className="py-3 px-4 font-bold">Montant Prélèvement MAD</th>
-                      <th className="py-3 px-4 font-bold">Net Reversé Vendeur</th>
-                      <th className="py-3 px-4 font-bold text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-800/60 font-mono">
-                    {escrowTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-stone-800/30 transition">
-                        <td className="py-3 px-4 text-stone-200 font-bold">{tx.referenceNumber}</td>
-                        <td className="py-3 px-4">{tx.subtotalAmountMAD.toLocaleString()} MAD</td>
-                        <td className="py-3 px-4 text-purple-300 font-bold">{(tx.platformCommissionRate * 100).toFixed(1)}%</td>
-                        <td className="py-3 px-4 text-emerald-400 font-bold">{tx.platformCommissionMAD.toLocaleString()} MAD</td>
-                        <td className="py-3 px-4 text-stone-300">{tx.sellerPayoutAmountMAD.toLocaleString()} MAD</td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedOrderForCommission({
-                                id: tx.id,
-                                reference: tx.referenceNumber,
-                                currentRate: tx.platformCommissionRate,
-                                subtotal: tx.subtotalAmountMAD,
-                              });
-                              setNewCommissionPercentInput((tx.platformCommissionRate * 100).toString());
-                            }}
-                            className="px-2.5 py-1 rounded bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-700 text-xs font-sans font-bold transition"
-                          >
-                            Ajuster
-                          </button>
-                        </td>
+              <span className="text-xs text-stone-400 hidden sm:inline">
+                Ajustement en temps réel des commissions vendeur et transporteur
+              </span>
+            </div>
+
+            {/* TABLE 1: VENTES / SÉQUESTRE */}
+            {(commissionViewType === 'all' || commissionViewType === 'escrow') && (
+              <div className="p-5 rounded-xl bg-stone-900 border border-stone-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <h3 className="text-sm font-bold text-stone-100">
+                      Commissions sur Transactions Marché, Pépinières & Récoltes
+                    </h3>
+                  </div>
+                  <span className="text-xs text-stone-400">
+                    {escrowTransactions.length} transaction(s)
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-stone-300">
+                    <thead className="bg-stone-950/80 text-stone-400 uppercase text-[10px] tracking-wider border-b border-stone-800">
+                      <tr>
+                        <th className="py-3 px-4 font-bold">Réf. Transaction</th>
+                        <th className="py-3 px-4 font-bold">Produit / Type</th>
+                        <th className="py-3 px-4 font-bold">Sous-total Vente</th>
+                        <th className="py-3 px-4 font-bold">Taux Commission</th>
+                        <th className="py-3 px-4 font-bold">Prélèvement AGRISTOCK</th>
+                        <th className="py-3 px-4 font-bold">Net Vendeur</th>
+                        <th className="py-3 px-4 font-bold text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-stone-800/60 font-mono">
+                      {escrowTransactions.map((tx) => (
+                        <tr key={tx.id} className="hover:bg-stone-800/30 transition">
+                          <td className="py-3 px-4 text-stone-200 font-bold">{tx.referenceNumber}</td>
+                          <td className="py-3 px-4 font-sans text-stone-300">
+                            <span className="font-semibold">{tx.itemTitle}</span>
+                            <span className="block text-[10px] text-stone-500 uppercase">{tx.itemType}</span>
+                          </td>
+                          <td className="py-3 px-4">{tx.subtotalAmountMAD.toLocaleString()} MAD</td>
+                          <td className="py-3 px-4 text-purple-300 font-bold">{(tx.platformCommissionRate * 100).toFixed(1)}%</td>
+                          <td className="py-3 px-4 text-emerald-400 font-bold">{tx.platformCommissionMAD.toLocaleString()} MAD</td>
+                          <td className="py-3 px-4 text-stone-300">{tx.sellerPayoutAmountMAD.toLocaleString()} MAD</td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrderForCommission({
+                                  id: tx.id,
+                                  reference: tx.referenceNumber,
+                                  currentRate: tx.platformCommissionRate,
+                                  subtotal: tx.subtotalAmountMAD,
+                                  type: 'escrow',
+                                });
+                                setNewCommissionPercentInput((tx.platformCommissionRate * 100).toString());
+                              }}
+                              className="px-2.5 py-1 rounded bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-700 text-xs font-sans font-bold transition"
+                            >
+                              Ajuster
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* TABLE 2: COMMISSIONS TRANSPORT & FRET */}
+            {(commissionViewType === 'all' || commissionViewType === 'transport') && (
+              <div className="p-5 rounded-xl bg-stone-900 border border-cyan-900/60 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                    <div>
+                      <h3 className="text-sm font-bold text-cyan-200">
+                        Gestion des Commissions Transport & Fret Logistique
+                      </h3>
+                      <p className="text-[11px] text-stone-400">
+                        Prélèvement plateforme sur les réservations de camions frigorifiques et fret agricole
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-xs font-bold font-mono">
+                    {transportBookings.length} course(s)
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-stone-300">
+                    <thead className="bg-stone-950/80 text-cyan-400 uppercase text-[10px] tracking-wider border-b border-stone-800">
+                      <tr>
+                        <th className="py-3 px-4 font-bold">Réf. Fret</th>
+                        <th className="py-3 px-4 font-bold">Transporteur</th>
+                        <th className="py-3 px-4 font-bold">Trajet</th>
+                        <th className="py-3 px-4 font-bold">Type Véhicule / Fardeau</th>
+                        <th className="py-3 px-4 font-bold">Montant Course HT</th>
+                        <th className="py-3 px-4 font-bold">Taux Commission</th>
+                        <th className="py-3 px-4 font-bold">Commission AGRISTOCK</th>
+                        <th className="py-3 px-4 font-bold">Net Reversé Transporteur</th>
+                        <th className="py-3 px-4 font-bold text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-800/60 font-mono">
+                      {transportBookings.map((b) => {
+                        const calculatedRate = b.totalPriceMAD > 0 ? (b.platformCommissionMAD / b.totalPriceMAD) : (platformSettings.defaultTransportCommissionRate ?? 0.08);
+                        return (
+                          <tr key={b.id} className="hover:bg-cyan-950/20 transition">
+                            <td className="py-3 px-4 text-cyan-200 font-bold">{b.bookingRef}</td>
+                            <td className="py-3 px-4 font-sans text-stone-200 font-semibold">{b.carrierName}</td>
+                            <td className="py-3 px-4 font-sans text-stone-300">
+                              <span>{b.originCity}</span> ➔ <span className="font-bold text-white">{b.destinationCity}</span>
+                              <span className="block text-[10px] text-stone-500 font-mono">{b.distanceKm} km</span>
+                            </td>
+                            <td className="py-3 px-4 font-sans text-stone-300">
+                              <span className="inline-block px-2 py-0.5 rounded bg-stone-800 text-[10px] font-bold text-cyan-300 border border-stone-700">
+                                {b.vehicleType}
+                              </span>
+                              <span className="block text-[11px] text-stone-400 mt-0.5">{b.cargoVolumeTonnes} Tonnes ({b.cargoType})</span>
+                            </td>
+                            <td className="py-3 px-4 font-bold text-stone-100">{b.totalPriceMAD.toLocaleString()} MAD</td>
+                            <td className="py-3 px-4 text-cyan-300 font-bold">{(calculatedRate * 100).toFixed(1)}%</td>
+                            <td className="py-3 px-4 text-emerald-400 font-bold">{b.platformCommissionMAD.toLocaleString()} MAD</td>
+                            <td className="py-3 px-4 text-stone-300 font-bold">{b.carrierPayoutMAD.toLocaleString()} MAD</td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForCommission({
+                                    id: b.id,
+                                    reference: b.bookingRef,
+                                    currentRate: calculatedRate,
+                                    subtotal: b.totalPriceMAD,
+                                    type: 'transport',
+                                    carrierName: b.carrierName,
+                                  });
+                                  setNewCommissionPercentInput((calculatedRate * 100).toFixed(1));
+                                }}
+                                className="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-700 text-xs font-sans font-bold transition"
+                              >
+                                Ajuster
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2056,6 +2222,27 @@ export const AdminDashboardView: React.FC = () => {
                 </div>
 
                 <div>
+                  <label className="block font-semibold text-stone-300 mb-1 flex items-center justify-between">
+                    <span>Taux de Commission Transport & Fret Logistique (%)</span>
+                    <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800">
+                      🚛 Fret & Camions
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="25"
+                    value={settingsForm.defaultTransportCommissionRate}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, defaultTransportCommissionRate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-stone-950 border border-stone-700 text-cyan-300 font-mono"
+                  />
+                  <span className="text-[11px] text-stone-500 mt-1 block">
+                    Prélevé automatiquement sur chaque mission ou course de transport frigorifique / logistique
+                  </span>
+                </div>
+
+                <div>
                   <label className="block font-semibold text-stone-300 mb-1">
                     Frais de Protection Séquestre Acheteur CMI (%)
                   </label>
@@ -2505,10 +2692,32 @@ export const AdminDashboardView: React.FC = () => {
          ==================================================== */}
       {selectedOrderForCommission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-stone-900 border border-purple-900 rounded-2xl p-6 max-w-md w-full text-stone-100 space-y-4">
-            <h3 className="font-bold text-base text-purple-300">Ajuster Commission Transaction</h3>
-            <p className="text-xs text-stone-300 font-mono">#{selectedOrderForCommission.reference}</p>
-            <p className="text-xs text-stone-400">Montant HT: {selectedOrderForCommission.subtotal.toLocaleString()} MAD</p>
+          <div className={`bg-stone-900 border rounded-2xl p-6 max-w-md w-full text-stone-100 space-y-4 ${
+            selectedOrderForCommission.type === 'transport' ? 'border-cyan-800' : 'border-purple-900'
+          }`}>
+            <div className="flex items-center justify-between">
+              <h3 className={`font-bold text-base ${
+                selectedOrderForCommission.type === 'transport' ? 'text-cyan-300' : 'text-purple-300'
+              }`}>
+                {selectedOrderForCommission.type === 'transport'
+                  ? 'Ajuster Commission Transport & Fret'
+                  : 'Ajuster Commission Transaction'}
+              </h3>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                selectedOrderForCommission.type === 'transport'
+                  ? 'bg-cyan-900/60 text-cyan-200 border border-cyan-700'
+                  : 'bg-purple-900/60 text-purple-200 border border-purple-700'
+              }`}>
+                {selectedOrderForCommission.type === 'transport' ? 'Fret Logistique' : 'Vente Produit'}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs text-stone-300 font-mono">#{selectedOrderForCommission.reference}</p>
+              {selectedOrderForCommission.carrierName && (
+                <p className="text-xs text-cyan-300 mt-0.5">Transporteur : {selectedOrderForCommission.carrierName}</p>
+              )}
+              <p className="text-xs text-stone-400 mt-0.5">Montant HT : {selectedOrderForCommission.subtotal.toLocaleString()} MAD</p>
+            </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-300 uppercase mb-1.5">
@@ -2540,10 +2749,18 @@ export const AdminDashboardView: React.FC = () => {
                 type="button"
                 onClick={async () => {
                   const rate = parseFloat(newCommissionPercentInput) / 100;
-                  await updateTransactionCommission(selectedOrderForCommission.id, rate);
+                  if (selectedOrderForCommission.type === 'transport') {
+                    await updateTransportCommission(selectedOrderForCommission.id, rate);
+                  } else {
+                    await updateTransactionCommission(selectedOrderForCommission.id, rate);
+                  }
                   setSelectedOrderForCommission(null);
                 }}
-                className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition"
+                className={`px-4 py-1.5 rounded-lg text-white text-xs font-bold transition ${
+                  selectedOrderForCommission.type === 'transport'
+                    ? 'bg-cyan-600 hover:bg-cyan-500'
+                    : 'bg-purple-600 hover:bg-purple-500'
+                }`}
               >
                 Appliquer et Journaliser
               </button>

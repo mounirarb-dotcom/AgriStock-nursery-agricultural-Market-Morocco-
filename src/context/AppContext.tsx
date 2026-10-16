@@ -3857,7 +3857,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         adminEmail: adminSession.email,
         adminName: adminSession.displayName,
         actionType: 'UPDATE_COMMISSION',
-        targetType: 'system',
+        targetType: 'order',
         targetId: bookingId,
         targetSummary: `Ajustement commission transport #${bookingId}`,
         details: `Nouveau taux commission transport: ${(newRate * 100).toFixed(1)}%`,

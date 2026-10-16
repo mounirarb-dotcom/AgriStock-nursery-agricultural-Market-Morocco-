@@ -41,6 +41,20 @@ export const CarrierDashboardView: React.FC = () => {
     openExcelStockModal,
   } = useApp();
 
+  const [activeSubTab, setActiveSubTab] = useState<'fleet' | 'requests' | 'missions' | 'deliveries'>('fleet');
+  const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
+
+  // Formulaire d'ajout de véhicule
+  const [plateNumber, setPlateNumber] = useState('');
+  const [vehicleType, setVehicleType] = useState<CarrierVehicle['vehicleType']>('camion_frigo_semi');
+  const [capacityTonnes, setCapacityTonnes] = useState<number>(24);
+  const [temperatureControlled, setTemperatureControlled] = useState<boolean>(true);
+  const [tempMinC, setTempMinC] = useState<number>(2);
+  const [tempMaxC, setTempMaxC] = useState<number>(10);
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
+  const [gpsLocation, setGpsLocation] = useState('Agadir Hub Logistique');
+
   if (!canManageCarrier) {
     return (
       <RoleAccessRestrictedNotice
@@ -60,20 +74,6 @@ export const CarrierDashboardView: React.FC = () => {
       />
     );
   }
-
-  const [activeSubTab, setActiveSubTab] = useState<'fleet' | 'requests' | 'missions' | 'deliveries'>('fleet');
-  const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
-
-  // Formulaire d'ajout de véhicule
-  const [plateNumber, setPlateNumber] = useState('');
-  const [vehicleType, setVehicleType] = useState<CarrierVehicle['vehicleType']>('camion_frigo_semi');
-  const [capacityTonnes, setCapacityTonnes] = useState<number>(24);
-  const [temperatureControlled, setTemperatureControlled] = useState<boolean>(true);
-  const [tempMinC, setTempMinC] = useState<number>(2);
-  const [tempMaxC, setTempMaxC] = useState<number>(10);
-  const [driverName, setDriverName] = useState('');
-  const [driverPhone, setDriverPhone] = useState('');
-  const [gpsLocation, setGpsLocation] = useState('Agadir Hub Logistique');
 
   const handleAddVehicle = (e: React.FormEvent) => {
     e.preventDefault();

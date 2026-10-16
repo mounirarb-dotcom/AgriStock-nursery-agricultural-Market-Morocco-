@@ -106,26 +106,6 @@ export const SellerDashboardView: React.FC<SellerDashboardViewProps> = ({
     openExcelStockModal,
   } = useApp();
 
-  if (!canManageSeller) {
-    return (
-      <RoleAccessRestrictedNotice
-        requiredRole="seller"
-        title={tr(
-          language,
-          'Espace Producteur & Vendeur Réservé',
-          'فضاء خاص بالمنتجين والفلاحين البائعين',
-          'Authorized Seller & Producer Workspace'
-        )}
-        description={tr(
-          language,
-          "Cet espace (mise en vente des récoltes, gestion des stocks bord champ, gestion des offres de gros) est réservé aux agriculteurs producteurs et coopératives vendeurs.",
-          "هذا الفضاء مخصص للفلاحين والتعاونيات المنتجة لعرض المحاصيل وإدارة عروض البيع.",
-          "This space is dedicated to agricultural producers and cooperative sellers to manage lots and wholesale offers."
-        )}
-      />
-    );
-  }
-
   const [showFirstTimeGuide, setShowFirstTimeGuide] = useState(() => {
     return localStorage.getItem('agrimaroc_seller_guide_dismissed') !== 'true';
   });
@@ -580,6 +560,26 @@ export const SellerDashboardView: React.FC<SellerDashboardViewProps> = ({
       onScrollToInventory();
     }
   };
+
+  if (!canManageSeller) {
+    return (
+      <RoleAccessRestrictedNotice
+        requiredRole="seller"
+        title={tr(
+          language,
+          'Espace Producteur & Vendeur Réservé',
+          'فضاء خاص بالمنتجين والفلاحين البائعين',
+          'Authorized Seller & Producer Workspace'
+        )}
+        description={tr(
+          language,
+          "Cet espace (mise en vente des récoltes, gestion des stocks bord champ, gestion des offres de gros) est réservé aux agriculteurs producteurs et coopératives vendeurs.",
+          "هذا الفضاء مخصص للفلاحين والتعاونيات المنتجة لعرض المحاصيل وإدارة عروض البيع.",
+          "This space is dedicated to agricultural producers and cooperative sellers to manage lots and wholesale offers."
+        )}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

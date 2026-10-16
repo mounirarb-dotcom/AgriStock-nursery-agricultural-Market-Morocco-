@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
 import {
@@ -27,6 +27,8 @@ import {
   Sliders,
   Calendar,
   FileSpreadsheet,
+  Database,
+  Smartphone,
 } from 'lucide-react';
 import { NurseryLot, GrowthStage, ONSSAStatus } from '../types';
 import { NurseryLotFormModal } from './NurseryLotFormModal';
@@ -35,47 +37,26 @@ import { TreatmentModal } from './TreatmentModal';
 import { RoleAccessRestrictedNotice } from './RoleAccessRestrictedNotice';
 import { RealTimeDataDashboard } from './RealTimeDataDashboard';
 
-export const NurseryDashboardView: React.FC = () => {
+interface NurseryDashboardContentProps {
+  // Can be extended if needed
+}
+
+const NurseryDashboardContent: React.FC<NurseryDashboardContentProps> = () => {
   const {
     language,
     userProfile,
-    canManageNursery,
-    switchActiveRole,
     nurseryLots,
     addNurseryLot,
     escrowTransactions,
-    lowStockLots,
-    setIsLowStockSettingsModalOpen,
     setIsQuickSyncModalOpen,
-    setIsOfficialComplianceModalOpen,
     setActiveTab,
     addTreatmentLog,
     openExcelStockModal,
     openNurserySetupModal,
   } = useApp();
 
-  if (!canManageNursery) {
-    return (
-      <RoleAccessRestrictedNotice
-        requiredRole="nursery"
-        title={tr(
-          language,
-          'Espace Pépiniériste Producteur Réservé',
-          'فضاء خاص بالمشاتل والمنتجين المعتمدين',
-          'Authorized Nursery Workspace'
-        )}
-        description={tr(
-          language,
-          "Cet espace de gestion d'exploitation (passeports sanitaires ONSSA, gestion des serres, traitements phytosanitaires et lots de plants) est strictement réservé aux pépiniéristes certifiés.",
-          "هذا الفضاء مخصص لإدارة المشاتل وجوازات السلامة الصحية ONSSA وتتبع المعاملات.",
-          "This station management space is reserved for certified nursery producers and authorized station managers."
-        )}
-      />
-    );
-  }
-
-  const [activeSubTab, setActiveSubTab] = useState<'lots' | 'varieties' | 'passports' | 'orders' | 'treatments'>('lots');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [nurseryDatabaseFilter, setNurseryDatabaseFilter] = useState<'ALL' | 'FRUIT_TREES' | 'ORNAMENTAL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLotForQR, setSelectedLotForQR] = useState<NurseryLot | null>(null);
   const [selectedLotForTreatment, setSelectedLotForTreatment] = useState<NurseryLot | null>(null);
@@ -84,9 +65,14 @@ export const NurseryDashboardView: React.FC = () => {
   // Commandes de plants via séquestre
   const nurseryOrders = escrowTransactions.filter(tx => tx.itemType === 'nursery_lot');
 
-  // Filtrage des lots
+  // Filtrage des lots pépinières
   const filteredLots = nurseryLots.filter(lot => {
-    const matchesCategory = categoryFilter === 'ALL' || lot.category.toLowerCase().includes(categoryFilter.toLowerCase());
+    const catLower = (lot.category || '').toLowerCase();
+    const isOrnamental = catLower.includes('ornement') || !!lot.ornamentalDetails;
+    if (nurseryDatabaseFilter === 'ORNAMENTAL' && !isOrnamental) return false;
+    if (nurseryDatabaseFilter === 'FRUIT_TREES' && isOrnamental) return false;
+
+    const matchesCategory = categoryFilter === 'ALL' || catLower.includes(categoryFilter.toLowerCase());
     const matchesSearch =
       lot.variety.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lot.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -279,126 +265,210 @@ export const NurseryDashboardView: React.FC = () => {
       {/* DASHBOARD DONNÉES TEMPS RÉEL (BOURSE CLIMAT, ONSSA, CMI ESCROW) */}
       <RealTimeDataDashboard nurseryId={userProfile.id || 'nurs-active-01'} region={userProfile.region} />
 
-      {/* NAVIGATION DES SOUS-ONGLETS PÉPINIÈRE */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-1.5 rounded-2xl bg-stone-200/70 border border-stone-300/80">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            id="tab-nursery-lots"
-            type="button"
-            onClick={() => setActiveSubTab('lots')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeSubTab === 'lots'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-stone-700 hover:bg-white/60'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>{tr(language, 'Lots & Stocks de Plants', 'دفعات ومخزون الشتلات', 'Lots & Stock')}</span>
-            <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-              {nurseryLots.length}
-            </span>
-          </button>
+      {/* CONTENU PRINCIPAL : LOTS & STOCKS DE LA PÉPINIÈRE */}
+      <div className="space-y-4">
+        {/* Barre de recherche et filtre de catégorie */}
+        <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-2xl bg-white border border-stone-200 shadow-xs">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder={tr(
+                language,
+                'Rechercher par variété, espèce, porte-greffe, N° de lot...',
+                'بحث حسب الصنف، النوع، حامل الطعم أو رقم الدفعة...',
+                'Search by variety, rootstock, batch number...'
+              )}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-stone-200 focus:outline-emerald-600"
+            />
+          </div>
 
-          <button
-            id="tab-nursery-varieties"
-            type="button"
-            onClick={() => setActiveSubTab('varieties')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeSubTab === 'varieties'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-stone-700 hover:bg-white/60'
-            }`}
-          >
-            <Trees className="w-4 h-4" />
-            <span>{tr(language, 'Variétés & Porte-Greffes', 'الأصناف وحوامل الطعوم', 'Varieties & Rootstocks')}</span>
-          </button>
-
-          <button
-            id="tab-nursery-passports"
-            type="button"
-            onClick={() => setActiveSubTab('passports')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeSubTab === 'passports'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-stone-700 hover:bg-white/60'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>{tr(language, 'Passeports ONSSA & Traçabilité', 'جوازات أونسا والتتبع', 'ONSSA Passports')}</span>
-            <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-              {certifiedONSSACount}
-            </span>
-          </button>
-
-          <button
-            id="tab-nursery-orders"
-            type="button"
-            onClick={() => setActiveSubTab('orders')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeSubTab === 'orders'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-stone-700 hover:bg-white/60'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>{tr(language, 'Commandes Reçues', 'الطلبيات الواردة', 'Orders Received')}</span>
-            <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-              {nurseryOrders.length}
-            </span>
-          </button>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {['ALL', 'Arbres', 'Maraîch', 'Ornementale'].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                  categoryFilter === cat
+                    ? 'bg-emerald-800 text-white'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                }`}
+              >
+                {cat === 'ALL'
+                  ? tr(language, 'Toutes Catégories', 'كل الفئات', 'All Categories')
+                  : cat}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Bouton d'accès au catalogue public des pépinières */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('nursery')}
-          className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 bg-emerald-100/70 hover:bg-emerald-200/80 px-3 py-1.5 rounded-xl transition"
-        >
-          <span>{tr(language, 'Voir le Catalogue Public', 'عرض الكتالوج العام للمشاتل', 'View Public Catalog')}</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* CONTENU DU SOUS-ONGLET 1 : LOTS & STOCKS */}
-      {activeSubTab === 'lots' && (
-        <div className="space-y-4">
-          {/* Barre de recherche et filtre de catégorie */}
-          <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-2xl bg-white border border-stone-200 shadow-xs">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder={tr(
-                  language,
-                  'Rechercher par variété, espèce, porte-greffe, N° de lot...',
-                  'بحث حسب الصنف، النوع، حامل الطعم أو رقم الدفعة...',
-                  'Search by variety, rootstock, batch number...'
-                )}
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-stone-200 focus:outline-emerald-600"
-              />
+          {/* SÉLECTEUR DE BASE DE DONNÉES PÉPINIÈRE (OPTIMISÉ MOBILE & TABLETTE) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-stone-900 to-emerald-950 border border-emerald-500/40 text-white shadow-md space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-300">
+                  {tr(language, 'Bases de Données Stocks Pépinière Agréée', 'قواعد بيانات مخزون المشاتل المعتمدة', 'Certified Nursery Stock Databases')}
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                Pépinières ONSSA Uniquement
+              </span>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-              {['ALL', 'Arbres', 'Maraîch', 'Ornementale'].map(cat => (
+            {/* Boutons de sélection de Base Pépinière */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setNurseryDatabaseFilter('ALL')}
+                className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex items-center justify-between ${
+                  nurseryDatabaseFilter === 'ALL'
+                    ? 'bg-emerald-600 border-emerald-400 text-white shadow-sm font-bold'
+                    : 'bg-stone-850/80 border-stone-700/70 text-stone-300 hover:bg-stone-800'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-bold">Toutes Bases Pépinière</div>
+                  <div className="text-[10px] text-stone-300">Inventaire Global</div>
+                </div>
+                <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-black/30">
+                  {nurseryLots.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNurseryDatabaseFilter('FRUIT_TREES')}
+                className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex items-center justify-between ${
+                  nurseryDatabaseFilter === 'FRUIT_TREES'
+                    ? 'bg-emerald-600 border-emerald-400 text-white shadow-sm font-bold'
+                    : 'bg-stone-850/80 border-stone-700/70 text-stone-300 hover:bg-stone-800'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-bold">🌱 Base Arboricole & Fruitiers</div>
+                  <div className="text-[10px] text-stone-300">Agrumes, Oliviers, Rosacées</div>
+                </div>
+                <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-black/30">
+                  {nurseryLots.filter(l => !l.category?.toLowerCase().includes('ornement') && !l.ornamentalDetails).length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNurseryDatabaseFilter('ORNAMENTAL')}
+                className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex items-center justify-between ${
+                  nurseryDatabaseFilter === 'ORNAMENTAL'
+                    ? 'bg-emerald-600 border-emerald-400 text-white shadow-sm font-bold'
+                    : 'bg-stone-850/80 border-stone-700/70 text-stone-300 hover:bg-stone-800'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-bold">🌸 Base Ornementale & Paysage</div>
+                  <div className="text-[10px] text-stone-300">Palmiers, Bougainvilliers</div>
+                </div>
+                <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-black/30">
+                  {nurseryLots.filter(l => l.category?.toLowerCase().includes('ornement') || !!l.ornamentalDetails).length}
+                </span>
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-900/60 text-xs">
+              <span className="text-[11px] text-stone-300">
+                Accès direct aux tables Excel & imports certifiés :
+              </span>
+              <div className="flex items-center gap-1.5">
                 <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                    categoryFilter === cat
-                      ? 'bg-emerald-800 text-white'
-                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                  }`}
+                  type="button"
+                  onClick={() => openExcelStockModal(nurseryDatabaseFilter === 'ORNAMENTAL' ? 'nursery_ornamental' : 'nursery')}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-[11px] flex items-center gap-1 transition cursor-pointer shadow-xs"
                 >
-                  {cat === 'ALL' ? tr(language, 'Toutes Catégories', 'كل الفئات', 'All Categories') : cat}
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Ouvrir Base en Plein Écran (Mobile)</span>
                 </button>
-              ))}
+              </div>
             </div>
           </div>
 
-          {/* Tableau des lots */}
-          <div className="overflow-hidden rounded-2xl bg-white border border-stone-200 shadow-xs">
+          {/* VUE CARTES MOBILES (< md) */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {filteredLots.map(lot => (
+              <div key={lot.id} className="p-4 rounded-2xl bg-white border border-stone-200 shadow-xs space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-stone-900">{lot.variety}</h4>
+                    <p className="text-xs text-stone-500">{lot.species}</p>
+                    {lot.batchNumber && (
+                      <span className="inline-block mt-1 font-mono text-[10px] px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-bold">
+                        Lot: {lot.batchNumber}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border shrink-0 ${
+                    lot.onssaStatus.includes('Bleue')
+                      ? 'bg-blue-50 text-blue-800 border-blue-200'
+                      : lot.onssaStatus.includes('Jaune')
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : 'bg-stone-100 text-stone-700 border-stone-200'
+                  }`}>
+                    <ShieldCheck className="w-3 h-3" />
+                    {lot.onssaStatus}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-stone-50 text-xs">
+                  <div>
+                    <span className="text-stone-400 block text-[10px]">Porte-greffe :</span>
+                    <strong className="text-stone-800">{lot.rootstock || 'Semis direct'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 block text-[10px]">Stade Végétatif :</span>
+                    <strong className="text-emerald-800">{lot.growthStage}</strong>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 block text-[10px]">Quantité Dispo :</span>
+                    <strong className="text-stone-900 font-mono text-sm">{lot.quantityAvailable.toLocaleString()}</strong>
+                    <span className="text-[10px] text-stone-400"> / {lot.quantityTotal.toLocaleString()} total</span>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 block text-[10px]">Prix Unitaire :</span>
+                    <strong className="text-emerald-800 font-mono text-sm">{lot.unitPriceMAD} MAD</strong>
+                    <span className="text-[10px] text-stone-400"> / plant</span>
+                  </div>
+                  {lot.phytosanitaryPassportNumber && (
+                    <div className="col-span-2 pt-1 border-t border-stone-200/60 flex items-center justify-between text-[11px]">
+                      <span className="text-stone-500 font-mono">Passeport ONSSA:</span>
+                      <span className="font-bold text-stone-800 font-mono">{lot.phytosanitaryPassportNumber}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-stone-100">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLotForQR(lot)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-emerald-100 text-stone-800 hover:text-emerald-900 font-bold text-xs transition cursor-pointer"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>QR Code ONSSA</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLotForTreatment(lot)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-amber-100 text-stone-800 hover:text-amber-900 font-bold text-xs transition cursor-pointer"
+                  >
+                    <Activity className="w-3.5 h-3.5" />
+                    <span>Traitement</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tableau des lots Desktop (hidden md:block) */}
+          <div className="hidden md:block overflow-hidden rounded-2xl bg-white border border-stone-200 shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-stone-50 text-stone-600 font-bold border-b border-stone-200">
@@ -497,142 +567,40 @@ export const NurseryDashboardView: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
 
-      {/* CONTENU DU SOUS-ONGLET 2 : VARIÉTÉS & PORTE-GREFFES */}
-      {activeSubTab === 'varieties' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLots.map(lot => (
-            <div key={lot.id} className="p-4 rounded-2xl bg-white border border-stone-200 shadow-xs space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold text-stone-900 text-sm">{lot.variety}</h3>
-                  <p className="text-xs text-stone-500">{lot.species}</p>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  {lot.growthStage}
-                </span>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80 space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-stone-500">{tr(language, 'Porte-greffe :', 'حامل الطعم :', 'Rootstock :')}</span>
-                  <span className="font-semibold text-stone-900">{lot.rootstock || 'Semis direct'}</span>
-                </div>
-                {lot.graftingDate && (
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">{tr(language, 'Date de greffage :', 'تاريخ التطعيم :', 'Grafting Date :')}</span>
-                    <span className="font-semibold text-stone-900">{lot.graftingDate}</span>
+      {/* SECTION COMMANDES RÉSERVÉES & SÉQUESTRE */}
+      {nurseryOrders.length > 0 && (
+        <div className="space-y-3 pt-4">
+          <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+            <Package className="w-4 h-4 text-teal-600" />
+            <span>{tr(language, 'Commandes de Plants Sous Séquestre', 'طلبيات الشتلات تحت الحجز المضمون', 'Escrow Plant Orders')}</span>
+          </h3>
+          <div className="space-y-3">
+            {nurseryOrders.map(tx => (
+              <div key={tx.id} className="p-4 rounded-2xl bg-white border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      {tx.referenceNumber}
+                    </span>
+                    <span className="font-bold text-stone-900 text-sm">{tx.itemTitle}</span>
                   </div>
-                )}
-                {lot.expectedDeliveryDate && (
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">{tr(language, 'Prêt à livrer le :', 'جاهز للتسليم في :', 'Ready on :')}</span>
-                    <span className="font-semibold text-emerald-800">{lot.expectedDeliveryDate}</span>
+                  <div className="text-xs text-stone-500">
+                    Acheteur : <span className="font-semibold text-stone-800">{tx.buyerName}</span> — Destination : <span className="font-semibold text-stone-800">{tx.destinationCity}</span>
                   </div>
-                )}
-              </div>
+                  <div className="text-xs text-stone-500">
+                    Quantité : <span className="font-mono font-bold text-stone-900">{tx.quantity.toLocaleString()} {tx.unit}</span> — Montant séquestre : <span className="font-mono font-bold text-emerald-800">{tx.totalPaidByBuyerMAD.toLocaleString()} MAD</span>
+                  </div>
+                </div>
 
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-stone-100">
-                <span className="text-stone-500">
-                  {lot.quantityAvailable.toLocaleString()} {tr(language, 'plants disponibles', 'شتلة متوفرة', 'plants available')}
-                </span>
-                <span className="font-bold text-emerald-800 font-mono">
-                  {lot.unitPriceMAD} MAD/plant
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* CONTENU DU SOUS-ONGLET 3 : PASSEPORTS ONSSA & TRAÇABILITÉ */}
-      {activeSubTab === 'passports' && (
-        <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-800 flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-stone-900">
-                {tr(language, 'Registre Officiel des Passeports Phytosanitaires ONSSA', 'سجل جوازات المرور النباتية المعتمدة أونسا', 'Official ONSSA Phytosanitary Passport Registry')}
-              </h2>
-              <p className="text-xs text-stone-500">
-                {tr(language, 'Traçabilité unitaire obligatoire pour la commercialisation et le transport des plants au Maroc.', 'تتبع قانوني وإلزامي لتسويق ونقل الشتلات داخل التراب الوطني بالمغرب.', 'Mandatory regulatory traceability for plant marketing and transit across Morocco.')}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-            {nurseryLots.filter(l => l.onssaStatus.includes('ONSSA')).map(lot => (
-              <div key={lot.id} className="p-4 rounded-xl bg-blue-50/40 border border-blue-200/80 space-y-2 text-xs">
-                <div className="flex justify-between items-start">
-                  <span className="font-bold text-blue-950">{lot.variety}</span>
-                  <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">
-                    {lot.batchNumber || 'LOT-2026'}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                    🛡️ {tx.status}
                   </span>
                 </div>
-                <div className="text-stone-600">
-                  Passeport N° : <span className="font-mono font-bold text-stone-900">{lot.phytosanitaryPassportNumber || 'PASS-ONSSA-MA-2026-88'}</span>
-                </div>
-                <div className="text-stone-500 text-[11px]">
-                  Catégorie : <span className="font-semibold text-stone-800">{lot.onssaStatus}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedLotForQR(lot)}
-                  className="w-full mt-2 flex items-center justify-center gap-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition text-[11px] cursor-pointer"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>{tr(language, 'Imprimer QR & Étiquette', 'طباعة الباركود والملصق', 'Print QR & Label')}</span>
-                </button>
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* CONTENU DU SOUS-ONGLET 4 : COMMANDES REÇUES */}
-      {activeSubTab === 'orders' && (
-        <div className="space-y-3">
-          {nurseryOrders.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-white border border-stone-200 text-center space-y-2">
-              <Package className="w-10 h-10 text-stone-400 mx-auto" />
-              <p className="text-sm font-bold text-stone-800">
-                {tr(language, 'Aucune commande de plants en cours', 'لا توجد طلبيات شتلات حالياً', 'No current plant orders')}
-              </p>
-              <p className="text-xs text-stone-500">
-                {tr(language, 'Dès qu\'un acheteur réserve un lot sous séquestre, il apparaîtra ici avec son bon de livraison.', 'عندما يقوم مشتري بحجز دفعة مع الدفع المضمون ستظهر هنا فوراً.', 'Orders placed by buyers will appear here with delivery details.')}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {nurseryOrders.map(tx => (
-                <div key={tx.id} className="p-4 rounded-2xl bg-white border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        {tx.referenceNumber}
-                      </span>
-                      <span className="font-bold text-stone-900 text-sm">{tx.itemTitle}</span>
-                    </div>
-                    <div className="text-xs text-stone-500">
-                      Acheteur : <span className="font-semibold text-stone-800">{tx.buyerName}</span> — Destination : <span className="font-semibold text-stone-800">{tx.destinationCity}</span>
-                    </div>
-                    <div className="text-xs text-stone-500">
-                      Quantité : <span className="font-mono font-bold text-stone-900">{tx.quantity.toLocaleString()} {tx.unit}</span> — Montant séquestre : <span className="font-mono font-bold text-emerald-800">{tx.totalPaidByBuyerMAD.toLocaleString()} MAD</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                      🛡️ {tx.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -666,4 +634,30 @@ export const NurseryDashboardView: React.FC = () => {
       )}
     </div>
   );
+};
+
+export const NurseryDashboardView: React.FC = () => {
+  const { language, canManageNursery } = useApp();
+
+  if (!canManageNursery) {
+    return (
+      <RoleAccessRestrictedNotice
+        requiredRole="nursery"
+        title={tr(
+          language,
+          'Espace Pépiniériste Producteur Réservé',
+          'فضاء خاص بالمشاتل والمنتجين المعتمدين',
+          'Authorized Nursery Workspace'
+        )}
+        description={tr(
+          language,
+          "Cet espace de gestion d'exploitation (passeports sanitaires ONSSA, gestion des serres, traitements phytosanitaires et lots de plants) est strictement réservé aux pépiniéristes certifiés.",
+          "هذا الفضاء مخصص لإدارة المشاتل وجوازات السلامة الصحية ONSSA وتتبع المعاملات.",
+          "This station management space is reserved for certified nursery producers and authorized station managers."
+        )}
+      />
+    );
+  }
+
+  return <NurseryDashboardContent />;
 };
