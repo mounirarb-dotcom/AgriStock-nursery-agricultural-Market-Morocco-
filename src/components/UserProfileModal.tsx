@@ -74,6 +74,7 @@ export const UserProfileModal: React.FC = () => {
     platformPaymentProtected,
     togglePlatformPaymentProtection,
     favoriteIds,
+    setIsRoleOnboardingOpen,
   } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -182,7 +183,17 @@ export const UserProfileModal: React.FC = () => {
                 <Layers className="w-4 h-4 text-emerald-400" />
                 <span>Mes Espaces Professionnels</span>
               </h3>
-              <span className="text-[10px] text-stone-500">Rôles activés</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileModalOpen(false);
+                  setIsRoleOnboardingOpen(true);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition cursor-pointer flex items-center gap-1"
+              >
+                <span>⇄</span>
+                <span>Changer rôle / utilisateur</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-2">

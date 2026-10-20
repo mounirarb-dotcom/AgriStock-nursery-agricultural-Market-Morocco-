@@ -117,13 +117,6 @@ export const useNavbarLogic = () => {
             },
           },
           messagesTab,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil Vendeur', 'الحساب', 'Profile'),
-            icon: React.createElement(User, { className: 'w-4 h-4 text-amber-300' }),
-            isActive: activeTab === 'profile',
-            onClick: () => setIsProfileModalOpen(true),
-          },
         ];
 
       case 'nursery':
@@ -153,13 +146,6 @@ export const useNavbarLogic = () => {
             },
           },
           messagesTab,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil Pépinière', 'الحساب', 'Profile'),
-            icon: React.createElement(User, { className: 'w-4 h-4 text-emerald-300' }),
-            isActive: activeTab === 'profile',
-            onClick: () => setIsProfileModalOpen(true),
-          },
         ];
 
       case 'carrier':
@@ -186,13 +172,6 @@ export const useNavbarLogic = () => {
             onClick: () => setActiveTab('carrier_space'),
           },
           messagesTab,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil Fret', 'الحساب', 'Profile'),
-            icon: React.createElement(User, { className: 'w-4 h-4 text-sky-300' }),
-            isActive: activeTab === 'profile',
-            onClick: () => setIsProfileModalOpen(true),
-          },
         ];
 
       case 'admin':
@@ -219,13 +198,6 @@ export const useNavbarLogic = () => {
             onClick: () => setActiveTab('admin'),
           },
           messagesTab,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil', 'الحساب', 'Profile'),
-            icon: React.createElement(User, { className: 'w-4 h-4 text-emerald-300' }),
-            isActive: activeTab === 'profile',
-            onClick: () => setIsProfileModalOpen(true),
-          },
         ];
 
       // Par défaut : ACHETEUR (Buyer)
@@ -259,13 +231,6 @@ export const useNavbarLogic = () => {
             onClick: () => setActiveTab('favorites'),
           },
           messagesTab,
-          {
-            id: 'profile',
-            label: tr(language, 'Espace Acheteur', 'فضاء المشتري', 'Buyer Space'),
-            icon: React.createElement(User, { className: 'w-4 h-4 text-emerald-400' }),
-            isActive: activeTab === 'buyer_space' && !isEscrowListModalOpen,
-            onClick: () => setActiveTab('buyer_space'),
-          },
         ];
     }
   }, [

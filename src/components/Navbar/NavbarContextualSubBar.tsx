@@ -26,6 +26,11 @@ export const NavbarContextualSubBar: React.FC<NavbarContextualSubBarProps> = ({
   setIsEscrowListModalOpen,
   setIsOfficialComplianceModalOpen,
 }) => {
+  // Declutter UI: Hide subbar for nursery role as these are already in bottom nav & dashboard
+  if (userProfile.role === 'nursery') {
+    return null;
+  }
+
   return (
     <div className="bg-[#0b1c13] border-t border-[#183627] py-1.5 px-3 sm:px-6 lg:px-8 shadow-inner">
       <div className="w-full max-w-7xl mx-auto flex items-center justify-between overflow-x-auto no-scrollbar gap-2">
@@ -169,47 +174,6 @@ export const NavbarContextualSubBar: React.FC<NavbarContextualSubBarProps> = ({
                 }`}
               >
                 <span>📥 {tr(language, 'Commandes reçues', 'الطلبات الواردة', 'Orders Received')}</span>
-              </button>
-            </>
-          )}
-
-          {/* PÉPINIÉRISTE */}
-          {userProfile.role === 'nursery' && (
-            <>
-              <button
-                type="button"
-                onClick={() => setActiveTab('nursery_space')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'nursery_space'
-                    ? 'bg-emerald-600 text-white font-bold'
-                    : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
-                }`}
-              >
-                <span>🌿 {tr(language, 'Mes lots', 'دفعات الشتلات', 'My Lots')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('nursery_space')}
-                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 text-stone-300 hover:text-white hover:bg-stone-800/60"
-              >
-                <span>📦 {tr(language, 'Mes stocks de plants', 'مخزون الشتلات', 'Plant Stocks')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsOfficialComplianceModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer text-stone-300 hover:text-white hover:bg-stone-800/60"
-              >
-                <span>🔍 {tr(language, 'Traçabilité ONSSA', 'تتبع أونسا', 'ONSSA Traceability')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsOfficialComplianceModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer text-stone-300 hover:text-white hover:bg-stone-800/60"
-              >
-                <span>📄 {tr(language, 'Passeports phytosanitaires', 'جوازات المرور', 'Phyto Passports')}</span>
               </button>
             </>
           )}

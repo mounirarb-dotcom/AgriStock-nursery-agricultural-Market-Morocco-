@@ -1,7 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
-import { AppTab } from '../types';
 import {
   Home,
   Sprout,
@@ -9,15 +8,12 @@ import {
   Package,
   MessageSquare,
   User,
-  ShoppingCart,
-  Truck,
-  ShieldCheck,
   Heart,
-  Tractor,
-  Route,
   ClipboardList,
   Search,
   TrendingUp,
+  ShieldCheck,
+  Truck,
 } from 'lucide-react';
 
 interface BottomNavItem {
@@ -43,7 +39,23 @@ export const BottomNav: React.FC = () => {
     favoriteIds,
     isEscrowListModalOpen,
     setIsEscrowListModalOpen,
+    isRoleOnboardingOpen,
+    setIsRoleOnboardingOpen,
   } = useApp();
+
+  const getProfileLabel = () => {
+    if (userProfile.displayName && userProfile.displayName.trim().length > 0) {
+      return userProfile.displayName.split(' ')[0];
+    }
+    const roleLabels: Record<string, string> = {
+      seller: tr(language, 'Vendeur', 'البائع', 'Seller'),
+      nursery: tr(language, 'Pépinière', 'المشتل', 'Nursery'),
+      carrier: tr(language, 'Transport', 'الناقل', 'Carrier'),
+      admin: tr(language, 'Admin', 'الإدارة', 'Admin'),
+      buyer: tr(language, 'Acheteur', 'المشتري', 'Buyer'),
+    };
+    return roleLabels[userProfile.role] || tr(language, 'Profil', 'الحساب', 'Profile');
+  };
 
   const getItemsForRole = (): BottomNavItem[] => {
     const role = userProfile.role || 'buyer';
@@ -57,6 +69,17 @@ export const BottomNav: React.FC = () => {
       onClick: () => setIsDiscussionsListModalOpen(true),
     };
 
+    const userProfileItem: BottomNavItem = {
+      id: 'profile',
+      label: getProfileLabel(),
+      icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
+      isActive: isRoleOnboardingOpen || isProfileModalOpen,
+      onClick: () => {
+        setIsEscrowListModalOpen(false);
+        setIsRoleOnboardingOpen(true);
+      },
+    };
+
     switch (role) {
       case 'seller':
         return [
@@ -64,7 +87,7 @@ export const BottomNav: React.FC = () => {
             id: 'home',
             label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
             icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'seller_space' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'seller_space' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('seller_space');
@@ -74,7 +97,7 @@ export const BottomNav: React.FC = () => {
             id: 'offers',
             label: tr(language, 'Mes Offres', 'عروضي', 'My Offers'),
             icon: <Package className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'market' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'market' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('market');
@@ -91,13 +114,7 @@ export const BottomNav: React.FC = () => {
             },
           },
           messagesItem,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil', 'الحساب', 'Profile'),
-            icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: isProfileModalOpen,
-            onClick: () => setIsProfileModalOpen(true),
-          },
+          userProfileItem,
         ];
 
       case 'nursery':
@@ -106,7 +123,7 @@ export const BottomNav: React.FC = () => {
             id: 'home',
             label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
             icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'nursery_space' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'nursery_space' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('nursery_space');
@@ -116,7 +133,7 @@ export const BottomNav: React.FC = () => {
             id: 'stock',
             label: tr(language, 'Stock Plants', 'المخزون', 'Stock'),
             icon: <Sprout className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'nursery' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'nursery' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('nursery');
@@ -133,13 +150,7 @@ export const BottomNav: React.FC = () => {
             },
           },
           messagesItem,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil', 'الحساب', 'Profile'),
-            icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: isProfileModalOpen,
-            onClick: () => setIsProfileModalOpen(true),
-          },
+          userProfileItem,
         ];
 
       case 'carrier':
@@ -148,7 +159,7 @@ export const BottomNav: React.FC = () => {
             id: 'home',
             label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
             icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'carrier_space' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'carrier_space' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('carrier_space');
@@ -166,7 +177,7 @@ export const BottomNav: React.FC = () => {
           },
           {
             id: 'fleet',
-            label: tr(language, 'Flotte', 'الأسطول', 'Fleet'),
+            label: tr(language, 'Flotte Frigo', 'الأسطول', 'Fleet'),
             icon: <Truck className="w-4 h-4 sm:w-5 sm:h-5" />,
             isActive: activeTab === 'carrier_space',
             onClick: () => {
@@ -175,13 +186,7 @@ export const BottomNav: React.FC = () => {
             },
           },
           messagesItem,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil', 'الحساب', 'Profile'),
-            icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: isProfileModalOpen,
-            onClick: () => setIsProfileModalOpen(true),
-          },
+          userProfileItem,
         ];
 
       case 'admin':
@@ -190,7 +195,7 @@ export const BottomNav: React.FC = () => {
             id: 'home',
             label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
             icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'home' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'home' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('home');
@@ -211,16 +216,10 @@ export const BottomNav: React.FC = () => {
             onClick: () => setActiveTab('admin'),
           },
           messagesItem,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil', 'الحساب', 'Profile'),
-            icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: isProfileModalOpen,
-            onClick: () => setIsProfileModalOpen(true),
-          },
+          userProfileItem,
         ];
 
-      // Par défaut : ACHETEUR (Buyer) - 5 onglets préconisés
+      // Par défaut : ACHETEUR (Buyer)
       default:
       case 'buyer':
         return [
@@ -228,7 +227,7 @@ export const BottomNav: React.FC = () => {
             id: 'home',
             label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
             icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'home' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'home' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('home');
@@ -238,7 +237,7 @@ export const BottomNav: React.FC = () => {
             id: 'search',
             label: tr(language, 'Chercher', 'بحث', 'Search'),
             icon: <Search className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'market' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'market' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('market');
@@ -249,23 +248,14 @@ export const BottomNav: React.FC = () => {
             label: tr(language, 'Favoris', 'المفضلة', 'Favorites'),
             icon: <Heart className="w-4 h-4 sm:w-5 sm:h-5" />,
             badgeCount: favoriteIds.length,
-            isActive: activeTab === 'favorites' && !isEscrowListModalOpen && !isProfileModalOpen,
+            isActive: activeTab === 'favorites' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('favorites');
             },
           },
           messagesItem,
-          {
-            id: 'profile',
-            label: tr(language, 'Profil', 'حسابي', 'Profile'),
-            icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: (activeTab === 'buyer_space' || isProfileModalOpen) && !isEscrowListModalOpen,
-            onClick: () => {
-              setIsEscrowListModalOpen(false);
-              setActiveTab('buyer_space');
-            },
-          },
+          userProfileItem,
         ];
     }
   };
@@ -274,9 +264,9 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
-      id="mobile-bottom-nav"
-      aria-label="Barre de navigation mobile par rôle"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#091b12]/95 backdrop-blur-lg border-t border-[#1a3f2d] px-1.5 pt-1.5 pb-2 shadow-[0_-4px_24px_rgba(0,0,0,0.45)] safe-area-bottom"
+      id="app-bottom-nav"
+      aria-label="Barre de navigation principale et profil"
+      className="fixed bottom-0 md:bottom-3 left-0 md:left-1/2 md:-translate-x-1/2 right-0 md:right-auto md:w-auto md:min-w-[460px] md:max-w-xl md:rounded-2xl md:border md:border-[#1a3f2d] md:shadow-2xl z-40 bg-[#091b12]/95 backdrop-blur-lg border-t border-[#1a3f2d] px-2 pt-1.5 pb-2 safe-area-bottom"
     >
       <div className="flex items-center justify-around max-w-lg mx-auto gap-0.5">
         {navItems.map((item) => {
@@ -288,7 +278,7 @@ export const BottomNav: React.FC = () => {
               onClick={item.onClick}
               aria-label={item.label}
               aria-current={item.isActive ? 'page' : undefined}
-              className="flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl group transition-transform active:scale-95 cursor-pointer min-h-[52px] select-none relative touch-manipulation"
+              className="flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl group transition-transform active:scale-95 cursor-pointer min-h-[50px] select-none relative touch-manipulation"
             >
               {/* Ergonomic Squircle icon receptacle */}
               <div

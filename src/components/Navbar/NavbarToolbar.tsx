@@ -17,8 +17,6 @@ import {
   Unlock,
   ShieldAlert,
   ChevronDown,
-  UserPlus,
-  LogIn,
   EyeOff,
   Layers,
   Info,
@@ -373,51 +371,7 @@ export const NavbarToolbar: React.FC<NavbarToolbarProps> = ({
         )}
       </div>
 
-      {/* 4. Profil Utilisateur / Connexion / Inscription (Desktop) */}
-      {userProfile.email || userProfile.hasCompletedIdentification ? (
-        <button
-          id="btn-navbar-profile-trigger"
-          type="button"
-          onClick={() => setIsProfileModalOpen(true)}
-          className="hidden lg:flex items-center gap-2 px-2.5 h-8 sm:h-9 rounded-xl bg-stone-900/80 hover:bg-stone-800 text-stone-200 border border-stone-700/80 text-xs font-semibold transition cursor-pointer"
-          title={tr(language, 'Mon Profil & Rôles', 'ملفي وأدواري', 'My Profile & Roles')}
-        >
-          <div className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
-            {userProfile.displayName ? userProfile.displayName.charAt(0).toUpperCase() : 'U'}
-          </div>
-          <span className="max-w-[85px] truncate text-[11px] font-bold">
-            {userProfile.displayName || 'Mon Profil'}
-          </span>
-          {userProfile.verificationStatus === 'pending_verification' ? (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="Profil à vérifier" />
-          ) : (
-            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Compte Actif" />
-          )}
-        </button>
-      ) : (
-        <div className="hidden lg:flex items-center gap-1.5">
-          <button
-            id="btn-navbar-register-trigger"
-            type="button"
-            onClick={() => setIsRegistrationModalOpen(true)}
-            className="flex items-center gap-1 px-2.5 h-8 sm:h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shadow-xs transition cursor-pointer"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>{tr(language, 'Inscription', 'تسجيل', 'Sign Up')}</span>
-          </button>
-          <button
-            id="btn-navbar-login-trigger"
-            type="button"
-            onClick={() => setIsLoginModalOpen(true)}
-            className="flex items-center gap-1 px-2 h-8 sm:h-9 rounded-xl hover:bg-stone-800 text-stone-300 hover:text-white text-[11px] font-semibold transition cursor-pointer"
-          >
-            <LogIn className="w-3.5 h-3.5 text-stone-400" />
-            <span>{tr(language, 'Connexion', 'دخول', 'Log In')}</span>
-          </button>
-        </div>
-      )}
-
-      {/* 5. Console Super Admin (Desktop) */}
+      {/* 4. Console Super Admin (Desktop) */}
       {isAdminAuthenticated ? (
         <button
           id="btn-navbar-admin-active"

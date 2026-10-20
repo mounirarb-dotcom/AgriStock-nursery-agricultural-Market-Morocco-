@@ -120,125 +120,14 @@ export const NavbarMobileMenu: React.FC<NavbarMobileMenuProps> = ({
 
   return (
     <div className="lg:hidden bg-[#091a11] border-b border-[#1b3d2c] px-3.5 pt-3 pb-5 space-y-3.5 shadow-2xl animate-in slide-in-from-top duration-200">
-      {/* 1. Compte & Profil Épuré */}
-      <div className="p-3 rounded-2xl bg-stone-900/90 border border-emerald-950/60 shadow-xs">
-        {userProfile.email || userProfile.hasCompletedIdentification ? (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-inner">
-                {userProfile.displayName ? userProfile.displayName.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-white truncate block">
-                    {userProfile.displayName || tr(language, 'Mon Compte', 'حسابي', 'My Account')}
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                    {userProfile.role === 'nursery'
-                      ? 'Pépiniériste'
-                      : userProfile.role === 'seller'
-                      ? 'Vendeur'
-                      : userProfile.role === 'carrier'
-                      ? 'Transporteur'
-                      : 'Acheteur'}
-                  </span>
-                </div>
-                <span className="text-[10px] text-stone-400 truncate block">
-                  {userProfile.companyName || userProfile.region || 'Maroc'}
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsProfileModalOpen(true);
-                onClose();
-              }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold shrink-0 transition cursor-pointer"
-            >
-              <span>{tr(language, 'Profil', 'الملف', 'Profile')}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLoginModalOpen(true);
-                onClose();
-              }}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition cursor-pointer"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>{tr(language, 'Se connecter', 'تسجيل الدخول', 'Log In')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistrationModalOpen(true);
-                onClose();
-              }}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs border border-stone-700 transition cursor-pointer"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>{tr(language, 'Créer un compte', 'إنشاء حساب', 'Sign Up')}</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 2. Espaces Métiers : Choix Direct & Épuré */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-            {tr(language, 'Espaces Métiers', 'فضاءات العمل', 'Workspaces')}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              setIsProfileModalOpen(true);
-              onClose();
-            }}
-            className="text-[10px] text-stone-400 hover:text-emerald-300 transition cursor-pointer"
-          >
-            {tr(language, 'Gérer mes rôles', 'إدارة الأدوار', 'Manage Roles')}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {(['buyer', 'seller', 'nursery', 'carrier'] as const).map((r) => {
-            const item = roleNameMap[r];
-            const isActive = currentRole === r;
-
-            return (
-              <button
-                key={r}
-                type="button"
-                onClick={() => handleSelectRole(r)}
-                className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 cursor-pointer ${
-                  isActive
-                    ? 'bg-emerald-950/80 border-emerald-500 text-white shadow-xs'
-                    : 'bg-stone-900/60 border-stone-800 text-stone-300 hover:bg-stone-800/80'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-1.5">
-                    {item.icon}
-                    <span className="text-xs font-bold truncate">{item.label}</span>
-                  </div>
-                  {isActive && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                  )}
-                </div>
-                <span className="text-[9px] text-stone-400 truncate block">
-                  {item.sub}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Titre Menu & Services */}
+      <div className="flex items-center justify-between px-1 pb-1 border-b border-[#1b3d2c]">
+        <span className="text-xs font-bold text-emerald-300">
+          {tr(language, 'Menu & Outils Plateforme', 'القائمة وأدوات المنصة', 'Menu & Platform Tools')}
+        </span>
+        <span className="text-[10px] text-stone-400">
+          {tr(language, 'Rôle & Profil gérés en bas', 'إدارة الحساب في الأسفل', 'Profile managed at bottom')}
+        </span>
       </div>
 
       {/* 3. Services & Raccourcis Essentiels */}

@@ -3,7 +3,6 @@ import { Menu, X } from 'lucide-react';
 import { AppLogo } from '../AppLogo';
 import { useNavbarLogic } from './useNavbarLogic';
 import { NavbarDesktopTabs } from './NavbarDesktopTabs';
-import { NavbarRoleSelector } from './NavbarRoleSelector';
 import { NavbarToolbar } from './NavbarToolbar';
 import { NavbarMobileMenu } from './NavbarMobileMenu';
 import { NavbarContextualSubBar } from './NavbarContextualSubBar';
@@ -96,19 +95,8 @@ export const Navbar: React.FC = () => {
             {/* Centre : Onglets Principaux Desktop (useMemo mémorisé) */}
             <NavbarDesktopTabs tabs={tabs} />
 
-            {/* Droite : Sélecteur de Rôle + Barre d'outils B2B & Profil */}
+            {/* Droite : Barre d'outils B2B & Alertes */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <NavbarRoleSelector
-                userProfile={userProfile}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                setUserRole={setUserRole}
-                roleDropdownOpen={roleDropdownOpen}
-                setRoleDropdownOpen={setRoleDropdownOpen}
-                setIsProfileModalOpen={setIsProfileModalOpen}
-                language={language}
-              />
-
               <NavbarToolbar
                 language={language}
                 setLanguage={setLanguage}

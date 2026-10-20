@@ -186,31 +186,7 @@ export const HomeView: React.FC = () => {
   }, [escrowTransactions]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200 pb-16 md:pb-8">
-      {/* 0. Profil actif & Sélecteur rapide de rôle (Niveau 1) */}
-      <div className="flex items-center justify-between p-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white shadow-xs text-xs">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold text-emerald-200">
-            {tr(language, 'Votre profil actif :', 'صفتك النشطة :', 'Active profile :')}
-          </span>
-          <span className="font-bold text-white px-2 py-0.5 rounded-lg bg-white/10">
-            {userProfile.role === 'seller' ? '🌾 Vendeur / Producteur' :
-             userProfile.role === 'nursery' ? '🌱 Pépiniériste' :
-             userProfile.role === 'carrier' ? '🚛 Transporteur' :
-             userProfile.role === 'admin' ? '⚙️ Administrateur' : '🛒 Acheteur'}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsRoleOnboardingOpen(true)}
-          className="px-3 py-1 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
-        >
-          <span>⇄</span>
-          <span>{tr(language, 'Changer de profil', 'تغيير الصفة', 'Switch profile')}</span>
-        </button>
-      </div>
-
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200 pb-20 md:pb-12">
       {/* 1. EN-TÊTE ÉPURÉ : App Brand + Localisation + Météo Compacte */}
       <div className="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">

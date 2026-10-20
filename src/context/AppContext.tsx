@@ -4374,10 +4374,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 19. Logique Simplifiée & Rôles
   const [isRoleOnboardingOpen, setIsRoleOnboardingOpen] = useState<boolean>(() => {
     try {
-      const hasChosen = localStorage.getItem('agristock_has_chosen_role_v1');
+      const hasChosen = localStorage.getItem('agristock_user_chosen_v3');
       return !hasChosen;
     } catch {
-      return false;
+      return true;
     }
   });
 
