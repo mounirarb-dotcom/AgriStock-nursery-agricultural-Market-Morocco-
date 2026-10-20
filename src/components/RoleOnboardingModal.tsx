@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
 import { UserRole, MoroccanRegion, AppLanguage } from '../types';
+import { validateUserRegistration } from '../schemas';
+import { toastService } from '../services/toastService';
 import {
   ShoppingCart,
   Tractor,

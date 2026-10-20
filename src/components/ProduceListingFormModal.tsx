@@ -6,6 +6,8 @@ import { useApp } from '../context/AppContext';
 import { X, Store, Check, UploadCloud, ShieldCheck, Tag, ShoppingBag, Award, Camera, ShieldAlert, Tractor, ShoppingCart } from 'lucide-react';
 import { PhotoUploadCapture } from './PhotoUploadCapture';
 import { tr } from '../utils/translations';
+import { validateProduceListing } from '../schemas';
+import { toastService } from '../services/toastService';
 
 interface Props {
   isOpen?: boolean;
@@ -217,7 +219,7 @@ export const ProduceListingFormModal: React.FC<Props> = ({
     // OWASP Rate Limiting
     const rate = globalClientRateLimiter.check('produce:create', 10, 60000);
     if (!rate.allowed) {
-      alert(`Trop de publications rapprochées. Réessayez dans ${Math.ceil(rate.retryAfterMs / 1000)}s.`);
+      toastService.warning(`Trop de publications rapprochées. Réessayez dans ${Math.ceil(rate.retryAfterMs / 1000)}s.`);
       return;
     }
 
@@ -279,11 +281,19 @@ export const ProduceListingFormModal: React.FC<Props> = ({
       cheptelPhotoUrl: category === 'Élevage & Bétail' ? sanitizeUrl(imageUrl) : undefined,
     };
 
+    // Validation par schéma Zod
+    const validation = validateProduceListing(newListingData);
+    if (!validation.success) {
+      toastService.warning(validation.firstErrorMessage || 'Veuillez vérifier les champs du formulaire.');
+      return;
+    }
+
     if (onSave) {
       onSave(newListingData);
     } else {
       addProduceListing(newListingData);
     }
+    toastService.success('Offre publiée avec succès sur la bourse !');
     onClose();
   };
 

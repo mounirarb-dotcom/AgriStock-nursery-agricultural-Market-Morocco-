@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
+import { toastService } from '../services/toastService';
 import {
   ShieldCheck,
   Lock,
@@ -86,7 +87,7 @@ export const SimpleOrderModal: React.FC = () => {
 
   const handleOrder = () => {
     if (!deliveryAddress.trim()) {
-      alert(tr(language, 'Veuillez saisir votre adresse de livraison.', 'يرجى إدخال عنوان التوصيل.', 'Please enter delivery address.'));
+      toastService.warning(tr(language, 'Veuillez saisir votre adresse de livraison.', 'يرجى إدخال عنوان التوصيل.', 'Please enter delivery address.'));
       return;
     }
 

@@ -112,6 +112,7 @@ import {
   getAccessToken,
 } from '../services/googleAuth';
 import { dataSyncService, SyncLog } from '../services/dataSync';
+import { toastService } from '../services/toastService';
 
 interface AppContextType {
   language: AppLanguage;
@@ -2008,7 +2009,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addNurseryLot = (lot: Omit<NurseryLot, 'id' | 'lastUpdated'>) => {
     if (!canManageNursery) {
-      alert('Action refusée : Seuls les comptes pépiniéristes agréés ou administrateurs peuvent créer des lots de plants.');
+      toastService.error('Action refusée : Seuls les comptes pépiniéristes agréés ou administrateurs peuvent créer des lots de plants.');
       return;
     }
 
@@ -2081,7 +2082,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateNurseryLot = (id: string, updated: Partial<NurseryLot>) => {
     if (!canManageNursery) {
-      alert('Action refusée : Seuls les comptes pépiniéristes agréés ou administrateurs peuvent modifier les lots de plants.');
+      toastService.error('Action refusée : Seuls les comptes pépiniéristes agréés ou administrateurs peuvent modifier les lots de plants.');
       return;
     }
 
@@ -2108,7 +2109,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteNurseryLot = (id: string) => {
     if (!canManageNursery) {
-      alert('Action refusée : Seuls les comptes pépiniéristes agréés ou administrateurs peuvent supprimer des lots.');
+      toastService.error('Action refusée : Seuls les comptes pépiniéristes agréés ou administrateurs peuvent supprimer des lots.');
       return;
     }
 
@@ -2117,7 +2118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addTreatmentLog = (lotId: string, treatment: Omit<TreatmentLog, 'id'>) => {
     if (!canManageNursery) {
-      alert('Action refusée : Seuls les comptes pépiniéristes agréés peuvent enregistrer des traitements sanitaires.');
+      toastService.error('Action refusée : Seuls les comptes pépiniéristes agréés peuvent enregistrer des traitements sanitaires.');
       return;
     }
 
@@ -2139,7 +2140,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const adjustStockQuantity = (lotId: string, changeAvailable: number, changeReserved = 0) => {
     if (!canManageNursery) {
-      alert('Action refusée : Seuls les comptes pépiniéristes agréés peuvent ajuster les quantités en stock.');
+      toastService.error('Action refusée : Seuls les comptes pépiniéristes agréés peuvent ajuster les quantités en stock.');
       return;
     }
     setNurseryLots(prev =>

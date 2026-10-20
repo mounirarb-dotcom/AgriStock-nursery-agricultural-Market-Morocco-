@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
+import { toastService } from '../services/toastService';
 import { ProduceCategory, MoroccanRegion } from '../types';
 import {
   X,
@@ -74,7 +75,7 @@ export const SimpleCreateOfferModal: React.FC = () => {
   const handlePublish = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert('Veuillez renseigner un titre pour votre offre.');
+      toastService.warning('Veuillez renseigner un titre pour votre offre.');
       return;
     }
 

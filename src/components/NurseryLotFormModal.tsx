@@ -18,6 +18,8 @@ import { MOROCCAN_REGIONS, NURSERY_CATEGORIES, GROWTH_STAGES, ONSSA_OPTIONS } fr
 import { NURSERY_PHOTO_PRESETS, NurseryPhotoPreset } from '../data/nurseryPhotoPresets';
 import { PhotoUploadCapture } from './PhotoUploadCapture';
 import { useApp } from '../context/AppContext';
+import { validateNurseryLot } from '../schemas';
+import { toastService } from '../services/toastService';
 import {
   X,
   Sprout,
@@ -301,7 +303,7 @@ export const NurseryLotFormModal: React.FC<Props> = ({
     // OWASP Rate Limiting guard
     const rate = globalClientRateLimiter.check('nursery:saveLot', 12, 60000);
     if (!rate.allowed) {
-      alert(`Trop d'actions consécutives. Veuillez patienter ${Math.ceil(rate.retryAfterMs / 1000)}s.`);
+      toastService.warning(`Trop d'actions consécutives. Veuillez patienter ${Math.ceil(rate.retryAfterMs / 1000)}s.`);
       return;
     }
 
@@ -358,9 +360,17 @@ export const NurseryLotFormModal: React.FC<Props> = ({
       ornamentalDetails,
     };
 
+    // Validation Zod
+    const validation = validateNurseryLot(payload);
+    if (!validation.success) {
+      toastService.warning(validation.firstErrorMessage || 'Veuillez vérifier les informations du lot de pépinière.');
+      return;
+    }
+
     if (onSave) {
       onSave(payload);
     }
+    toastService.success('Lot de pépinière enregistré avec succès.');
     onClose();
   };
 

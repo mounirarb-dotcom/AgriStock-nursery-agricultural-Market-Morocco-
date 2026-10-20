@@ -32,6 +32,7 @@ import { AudioSearchModal } from '../AudioSearchModal';
 import { RoleOnboardingModal } from '../RoleOnboardingModal';
 import { SimpleOrderModal } from '../SimpleOrderModal';
 import { OfferDetailModal } from '../OfferDetailModal';
+import { AppToastContainer } from '../AppToastContainer';
 import { NurseryLot, ProduceListing } from '../../types';
 
 export const AppModalsContainer: React.FC = () => {
@@ -60,6 +61,7 @@ export const AppModalsContainer: React.FC = () => {
 
   return (
     <>
+      <AppToastContainer />
       <RoleOnboardingModal />
       <SimpleOrderModal />
       <OfferDetailModal />
