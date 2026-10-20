@@ -14,8 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // AI Studio Runtime Requirement: Dev server must run on port 3000, production uses process.env.PORT
-const PORT = Number(process.env.PORT) || 3000;
 const IS_PROD = process.env.NODE_ENV === 'production';
+const PORT = !IS_PROD ? 3000 : (Number(process.env.PORT) || 3000);
 
 // ============================================================================
 // ENVIRONMENT VARIABLES VALIDATION
@@ -86,13 +86,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ============================================================================
-// 1. OWASP & ASVS SECURITY HEADERS
+// 1. OWASP & ASVS SECURITY HEADERS (Configured for AI Studio iFrame)
 // ============================================================================
 app.use((req: Request, res: Response, next: NextFunction) => {
   // Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  // Clickjacking defense
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   // Legacy browser XSS filter
   res.setHeader('X-XSS-Protection', '1; mode=block');
   // Strict referrer policy
@@ -105,11 +103,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   // Permissions Policy
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(self)');
-  // Cross Origin Policies
+  // Cross Origin Policies - allow AI Studio iFrame embedding
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
 
-  // Hardened Content Security Policy with Google Maps Platform allowances
+  // Hardened Content Security Policy with Google Maps Platform and iFrame allowances
   res.setHeader(
     'Content-Security-Policy',
     [
@@ -120,7 +117,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       "font-src 'self' https: data: https://fonts.gstatic.com https://fonts.googleapis.com",
       `connect-src 'self' https: ws: wss: ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')} https://*.google.com ${SECURITY_ORIGINS.FIREBASE.join(' ')} https://api.open-meteo.com`,
       "worker-src 'self' blob:",
-      "frame-ancestors 'self' https:",
+      "frame-ancestors 'self' https://*.google.com https://*.run.app https:",
       "base-uri 'self'",
       "object-src 'none'",
       "upgrade-insecure-requests",
