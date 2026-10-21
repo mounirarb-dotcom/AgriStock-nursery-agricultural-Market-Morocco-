@@ -87,3 +87,12 @@ export function validateUserProfile(data: unknown): ValidationResult<UserProfile
 export function validateUserRegistration(data: unknown): ValidationResult<UserRegistrationInput> {
   return validateWithSchema(UserRegistrationInputSchema, data);
 }
+
+// Aliases de rétrocompatibilité
+export const validateSchema = validateWithSchema;
+export const NurseryLotSchema = NurseryLotInputSchema;
+export const ProduceListingSchema = ProduceListingInputSchema;
+
+// Réexportation des schémas principaux définis dans src/lib/validations
+export * from '../lib/validations';
+

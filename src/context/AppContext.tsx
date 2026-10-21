@@ -113,6 +113,8 @@ import {
 } from '../services/googleAuth';
 import { dataSyncService, SyncLog } from '../services/dataSync';
 import { toastService } from '../services/toastService';
+import { validateUser, validateUserUpdate, validateProduct } from '../lib/validations';
+import { productService } from '../services/ProductService';
 
 interface AppContextType {
   language: AppLanguage;
@@ -1045,6 +1047,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Inscription et création de compte (Firebase Auth + Firestore)
   const registerAccount = useCallback(async (params: RegisterAccountParams) => {
+    const valResult = validateUser({
+      name: params.displayName,
+      phone: params.phone,
+      email: params.email,
+      role: params.roles[0] || 'buyer',
+    });
+    if (!valResult.success) {
+      return { success: false, error: valResult.firstErrorMessage || 'Données du compte invalides.' };
+    }
+
     const res = await registerUserAccount(params);
     if (res.success && res.profile) {
       setUserProfile(res.profile);
@@ -1110,6 +1122,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Mise à jour des informations de profil
   const updateProfileData = useCallback(async (updates: Partial<UserProfile>) => {
     try {
+      if (updates.displayName || updates.phone || updates.email) {
+        const valResult = validateUserUpdate({
+          name: updates.displayName,
+          phone: updates.phone,
+          email: updates.email,
+          companyName: updates.companyName,
+          region: updates.region,
+        });
+        if (!valResult.success) {
+          return { success: false, error: valResult.firstErrorMessage || 'Données du profil invalides.' };
+        }
+      }
+
       setUserProfile(prev => {
         const merged = { ...prev, ...updates };
         return merged;
@@ -2285,6 +2310,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     markItemAsOwned(newListing.id);
     setProduceListings(prev => [newListing, ...prev]);
+    void productService.createProduct(newListing).catch(e => console.warn('[ProductService] create error:', e));
 
     // Déclenchement automatique d'alerte si l'offre correspond à un seuil surveillé
     if (notificationSettings.priceDropAlerts && newListing.listingIntent !== 'buy') {
@@ -2418,12 +2444,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProduceListing = useCallback((id: string, updated: Partial<ProduceListing>) => {
+    void productService.updateProduct(id, updated).catch(e => console.warn('[ProductService] update error:', e));
     setProduceListings(prev =>
       prev.map(p => (p.id === id ? { ...p, ...updated } : p))
     );
   }, []);
 
   const deleteProduceListing = (id: string) => {
+    void productService.deleteProduct(id).catch(e => console.warn('[ProductService] delete error:', e));
     setProduceListings(prev => prev.filter(p => p.id !== id));
   };
 

@@ -33,6 +33,7 @@ import {
   CarrierDetails,
 } from '../types';
 import { tr } from '../utils/translations';
+import { validateUser } from '../lib/validations';
 
 const REGIONS: MoroccanRegion[] = [
   'Souss-Massa (Agadir, Taroudant, Chtouka)',
@@ -178,18 +179,18 @@ export const RegistrationModal: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!displayName.trim()) {
-      setErrorMessage(tr(language, 'Veuillez saisir votre nom et prénom ou responsable.', 'يرجى إدخال الاسم الكامل أو اسم المسؤول.', 'Please enter your name.'));
+    const validation = validateUser({
+      name: displayName.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      role: 'buyer',
+    });
+
+    if (!validation.success) {
+      setErrorMessage(validation.firstErrorMessage || 'Veuillez vérifier les informations saisies.');
       return;
     }
-    if (!phone.trim()) {
-      setErrorMessage(tr(language, 'Veuillez saisir votre numéro de téléphone.', 'يرجى إدخال رقم الهاتف.', 'Please enter your phone number.'));
-      return;
-    }
-    if (!email.trim() || !email.includes('@')) {
-      setErrorMessage(tr(language, 'Veuillez saisir une adresse email valide.', 'يرجى إدخال بريد إلكتروني صحيح.', 'Please enter a valid email.'));
-      return;
-    }
+
     if (password.length < 6) {
       setErrorMessage(tr(language, 'Le mot de passe doit comporter au moins 6 caractères.', 'يجب ألا تقل كلمة المرور عن 6 أحرف.', 'Password must be at least 6 characters.'));
       return;

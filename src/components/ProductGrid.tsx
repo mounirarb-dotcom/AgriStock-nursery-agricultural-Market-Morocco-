@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
+import { productService } from '../services/ProductService';
 import { ProductCard } from './ProductCard';
 import {
   Search,
@@ -56,80 +57,22 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     { id: 'LIVESTOCK', label: tr(language, 'Élevage & Bétail', 'مواشي وأنعام', 'Livestock'), icon: <Tractor className="w-4 h-4" /> },
   ];
 
-  // Régions marocaines représentées
+  // Régions marocaines représentées (délégué à ProductService)
   const regions = useMemo(() => {
-    const set = new Set<string>();
-    produceListings.forEach((p) => p.region && set.add(p.region));
-    nurseryLots.forEach((n) => n.region && set.add(n.region));
-    return Array.from(set);
+    return productService.extractUniqueRegions(produceListings, nurseryLots);
   }, [produceListings, nurseryLots]);
 
-  // Fusion et filtrage
+  // Fusion et filtrage du catalogue (délégué à ProductService)
   const filteredProducts = useMemo(() => {
-    let combined: (ProduceListing | (NurseryLot & { type: 'nursery' }))[] = [];
-
-    // Ajouter les annonces de récoltes
-    if (activeCategory === 'ALL' || activeCategory === 'FRUIT' || activeCategory === 'VEG' || activeCategory === 'LIVESTOCK') {
-      const filteredProduce = produceListings
-        .filter((item) => item.status === 'Disponible')
-        .filter((item) => {
-          if (activeCategory === 'FRUIT') return item.category === 'Fruit';
-          if (activeCategory === 'VEG') return item.category === 'Légume';
-          if (activeCategory === 'LIVESTOCK') return item.category === 'Élevage & Bétail';
-          return true;
-        });
-      combined.push(...filteredProduce);
-    }
-
-    // Ajouter les lots de pépinières
-    if (activeCategory === 'ALL' || activeCategory === 'NURSERY') {
-      const nurseryItems = nurseryLots.map((lot) => ({ ...lot, type: 'nursery' as const }));
-      combined.push(...nurseryItems);
-    }
-
-    // Filtrage par région
-    if (selectedRegion !== 'ALL') {
-      combined = combined.filter((item) => item.region === selectedRegion);
-    }
-
-    // Filtrage par texte de recherche
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
-      combined = combined.filter((item) => {
-        if ('species' in item) {
-          return (
-            item.species.toLowerCase().includes(q) ||
-            item.variety.toLowerCase().includes(q) ||
-            item.category.toLowerCase().includes(q) ||
-            (item.sellerName && item.sellerName.toLowerCase().includes(q))
-          );
-        } else {
-          return (
-            item.title.toLowerCase().includes(q) ||
-            item.variety.toLowerCase().includes(q) ||
-            item.category.toLowerCase().includes(q) ||
-            (item.sellerName && item.sellerName.toLowerCase().includes(q)) ||
-            (item.locationCity && item.locationCity.toLowerCase().includes(q))
-          );
-        }
-      });
-    }
-
-    // Tri
-    combined.sort((a, b) => {
-      const priceA = 'species' in a ? a.unitPriceMAD : a.pricePerUnitMAD;
-      const priceB = 'species' in b ? b.unitPriceMAD : b.pricePerUnitMAD;
-      if (sortBy === 'price_asc') return priceA - priceB;
-      if (sortBy === 'price_desc') return priceB - priceA;
-      if (sortBy === 'volume') return b.quantityAvailable - a.quantityAvailable;
-      // 'recent' fallback
-      return 0;
+    return productService.combineAndFilterCatalog({
+      produceListings,
+      nurseryLots,
+      activeCategory,
+      selectedRegion,
+      searchTerm,
+      sortBy,
+      limit,
     });
-
-    if (limit && limit > 0) {
-      return combined.slice(0, limit);
-    }
-    return combined;
   }, [
     activeCategory,
     produceListings,

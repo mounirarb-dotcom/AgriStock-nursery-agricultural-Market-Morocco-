@@ -47,7 +47,7 @@ export const ProduceListingInputSchema = z.object({
   region: MoroccanRegionEnum,
   locationCity: z.string().trim().max(80).optional(),
   quantityAvailable: z
-    .number({ invalid_type_error: 'La quantité doit être un nombre' })
+    .number()
     .positive('La quantité disponible doit être strictement supérieure à 0')
     .max(10000000, 'Quantité maximale dépassée'),
   unit: z.string().min(1, 'L\'unité de mesure est requise'),
@@ -56,7 +56,7 @@ export const ProduceListingInputSchema = z.object({
     .positive('La quantité minimale doit être supérieure à 0')
     .default(1),
   pricePerUnitMAD: z
-    .number({ invalid_type_error: 'Le prix unitaire doit être un nombre' })
+    .number()
     .positive('Le prix unitaire en Dirhams (MAD) doit être supérieur à 0')
     .max(10000000, 'Prix unitaire hors limites'),
   priceType: z.string().default('Départ ferme (Sortie de champ)'),
@@ -108,11 +108,11 @@ export const NurseryLotInputSchema = z.object({
   propagationMethod: z.enum(['Semis', 'Bouturage', 'Greffage', 'In Vitro (Micropropagation)']).default('Greffage'),
   stage: z.string().default('Prêt à la plantation (Commercialisable)'),
   quantityTotal: z
-    .number({ invalid_type_error: 'La quantité totale doit être un nombre' })
+    .number()
     .int('La quantité doit être un nombre entier')
     .positive('La quantité totale doit être supérieure à 0'),
   quantityAvailable: z
-    .number({ invalid_type_error: 'La quantité disponible doit être un nombre' })
+    .number()
     .int('La quantité doit être un nombre entier')
     .min(0, 'La quantité disponible ne peut être négative'),
   quantityReserved: z
@@ -121,7 +121,7 @@ export const NurseryLotInputSchema = z.object({
     .min(0, 'La quantité réservée ne peut être négative')
     .default(0),
   unitPriceMAD: z
-    .number({ invalid_type_error: 'Le prix unitaire doit être un nombre' })
+    .number()
     .positive('Le prix unitaire en MAD par plant doit être supérieur à 0'),
   containerType: z.string().min(1, 'Type de conteneur requis (ex: Sachet 2L, Racine nue, Pot)'),
   greenhouseLocation: z.string().default('Serre Principale'),

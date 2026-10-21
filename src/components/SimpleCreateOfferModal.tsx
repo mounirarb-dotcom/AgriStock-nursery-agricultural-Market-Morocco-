@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
 import { toastService } from '../services/toastService';
+import { validateProduct } from '../lib/validations';
 import { ProduceCategory, MoroccanRegion } from '../types';
 import {
   X,
@@ -74,15 +75,28 @@ export const SimpleCreateOfferModal: React.FC = () => {
 
   const handlePublish = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      toastService.warning('Veuillez renseigner un titre pour votre offre.');
+    
+    const validation = validateProduct({
+      name: title.trim(),
+      category,
+      price: Number(pricePerUnitMAD),
+      quantity: Number(quantity),
+      unit,
+      variety: title.trim().split(' ')[0] || 'Variété standard',
+      region: userProfile.region || 'Souss-Massa (Agadir, Taroudant, Chtouka)',
+      sellerName: userProfile.companyName || userProfile.displayName || 'Producteur Agricole',
+      imageUrl: selectedImage,
+    });
+
+    if (!validation.success) {
+      toastService.warning(validation.firstErrorMessage || 'Données du produit invalides.');
       return;
     }
 
     addProduceListing({
-      title,
+      title: title.trim(),
       category,
-      variety: title.split(' ')[0] || 'Variété standard',
+      variety: title.trim().split(' ')[0] || 'Variété standard',
       quantityAvailable: quantity,
       unit,
       pricePerUnitMAD,
@@ -95,6 +109,7 @@ export const SimpleCreateOfferModal: React.FC = () => {
       listingIntent: 'sell',
     });
 
+    toastService.success('Offre publiée avec succès !');
     setIsSuccess(true);
   };
 

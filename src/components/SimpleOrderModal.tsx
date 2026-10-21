@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { tr } from '../utils/translations';
 import { toastService } from '../services/toastService';
+import { validateOrder } from '../lib/validations';
 import {
   ShieldCheck,
   Lock,
@@ -97,23 +98,31 @@ export const SimpleOrderModal: React.FC = () => {
       ? 'farm_standing'
       : 'produce';
 
-    const tx = createEscrowTransaction({
+    const orderPayload = {
       itemType,
-      itemId: simpleOrderItem.id,
+      itemId: String(simpleOrderItem.id),
       itemTitle,
       sellerName,
       sellerPhone: simpleOrderItem.sellerPhone || '+212600000000',
       buyerName: userProfile.displayName || 'Acheteur AGRIStock',
-      buyerPhone: userProfile.phone || '+212611223344',
+      buyerPhone: userProfile.phone || '0661223344',
       buyerEmail: userProfile.email || 'acheteur@agristock.ma',
-      deliveryAddress,
-      destinationCity: city,
+      deliveryAddress: deliveryAddress.trim(),
+      destinationCity: city.trim() || 'Casablanca',
       quantity,
       unit,
       unitPriceMAD: unitPrice,
       paymentMethod,
       notes: `Commande simplifiée directe depuis le Marché Acheteur`,
-    });
+    };
+
+    const validation = validateOrder(orderPayload);
+    if (!validation.success) {
+      toastService.warning(validation.firstErrorMessage || 'Données de commande invalides.');
+      return;
+    }
+
+    const tx = createEscrowTransaction(orderPayload);
 
     setConfirmedTx({
       id: tx.id,

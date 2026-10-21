@@ -502,6 +502,212 @@ Retourne STRICTEMENT et UNIQUEMENT un objet JSON valide, sans balises markdown :
 });
 
 // ============================================================================
+// 5.1. PRODUCE & PRODUCT MARKETPLACE API (CRUD & Filtering)
+// ============================================================================
+interface BackendProductItem {
+  id: string;
+  title: string;
+  category: string;
+  variety: string;
+  region: string;
+  locationCity: string;
+  quantityAvailable: number;
+  unit: string;
+  minOrderQuantity: number;
+  pricePerUnitMAD: number;
+  priceType?: string;
+  sellerName: string;
+  sellerType?: string;
+  phone?: string;
+  whatsapp?: string;
+  description?: string;
+  imageUrl?: string;
+  isFeatured?: boolean;
+  status: 'Disponible' | 'Réservé' | 'Vendu';
+  createdAt: string;
+}
+
+const serverProductsStore: BackendProductItem[] = [
+  {
+    id: 'prod-01',
+    title: 'Tomates Rondes Lisses de Chtouka Aït Baha',
+    category: 'Légume',
+    variety: 'Torry F1 / Reva',
+    region: 'Souss-Massa (Agadir, Taroudant, Chtouka)',
+    locationCity: 'Biougra / Chtouka',
+    quantityAvailable: 45,
+    unit: 'Tonnes',
+    minOrderQuantity: 2,
+    pricePerUnitMAD: 4800,
+    priceType: 'Départ ferme (Sortie de champ)',
+    sellerName: 'Coopérative Maraîchère Souss Primeurs',
+    sellerType: 'Coopérative Agricole',
+    phone: '+212661448821',
+    whatsapp: '212661448821',
+    description: 'Tomates rouges fermes, récoltées le matin, calibrées en station agréée ONSSA.',
+    imageUrl: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=800&q=80',
+    isFeatured: true,
+    status: 'Disponible',
+    createdAt: '2025-02-28',
+  },
+  {
+    id: 'prod-02',
+    title: 'Clémentines Nadorcott de Berkane (Label IGP)',
+    category: 'Fruit',
+    variety: 'Nadorcott Afourer de Berkane',
+    region: 'L\'Oriental (Berkane, Oujda, Nador)',
+    locationCity: 'Berkane',
+    quantityAvailable: 80,
+    unit: 'Tonnes',
+    minOrderQuantity: 5,
+    pricePerUnitMAD: 7200,
+    priceType: 'Départ station de conditionnement',
+    sellerName: 'Domaine Agrumes de la Moulouya',
+    sellerType: 'Agriculteur / Producteur',
+    phone: '+212661882299',
+    description: 'Clémentines de premier choix, sans pépins, taux de brix élevé.',
+    imageUrl: 'https://images.unsplash.com/photo-1582979512210-99b6a53386f9?auto=format&fit=crop&w=800&q=80',
+    isFeatured: true,
+    status: 'Disponible',
+    createdAt: '2025-02-27',
+  },
+  {
+    id: 'prod-03',
+    title: 'Pommes Golden Delicious de Midelt (Haut Atlas)',
+    category: 'Fruit',
+    variety: 'Golden Delicious Calibre 70/80',
+    region: 'Drâa - Tafilalet (Zagora, Errachidia)',
+    locationCity: 'Midelt / Itzer',
+    quantityAvailable: 60,
+    unit: 'Tonnes',
+    minOrderQuantity: 3,
+    pricePerUnitMAD: 6500,
+    sellerName: 'Coopérative Arboricole Midelt Atlas',
+    sellerType: 'Coopérative Agricole',
+    phone: '+212662991144',
+    imageUrl: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=800&q=80',
+    isFeatured: false,
+    status: 'Disponible',
+    createdAt: '2025-02-26',
+  },
+];
+
+// GET /api/products
+app.get('/api/products', (req: Request, res: Response) => {
+  const { category, region, status, q, sortBy, limit } = req.query;
+  let result = [...serverProductsStore];
+
+  if (category && typeof category === 'string' && category !== 'ALL') {
+    const catLower = category.toLowerCase();
+    result = result.filter(p => p.category.toLowerCase().includes(catLower));
+  }
+  if (region && typeof region === 'string' && region !== 'ALL') {
+    result = result.filter(p => p.region === region);
+  }
+  if (status && typeof status === 'string') {
+    result = result.filter(p => p.status === status);
+  }
+  if (q && typeof q === 'string') {
+    const qLower = q.toLowerCase();
+    result = result.filter(p =>
+      p.title.toLowerCase().includes(qLower) ||
+      p.variety.toLowerCase().includes(qLower) ||
+      p.sellerName.toLowerCase().includes(qLower) ||
+      p.locationCity.toLowerCase().includes(qLower)
+    );
+  }
+  if (sortBy === 'price_asc') {
+    result.sort((a, b) => a.pricePerUnitMAD - b.pricePerUnitMAD);
+  } else if (sortBy === 'price_desc') {
+    result.sort((a, b) => b.pricePerUnitMAD - a.pricePerUnitMAD);
+  } else if (sortBy === 'qty_desc') {
+    result.sort((a, b) => b.quantityAvailable - a.quantityAvailable);
+  }
+
+  if (limit) {
+    const maxItems = parseInt(limit as string, 10);
+    if (!isNaN(maxItems) && maxItems > 0) {
+      result = result.slice(0, maxItems);
+    }
+  }
+
+  res.json(result);
+});
+
+// GET /api/products/:id
+app.get('/api/products/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const product = serverProductsStore.find(p => p.id === id);
+  if (!product) {
+    return res.status(404).json({ success: false, error: 'Produit introuvable.' });
+  }
+  res.json(product);
+});
+
+// POST /api/products
+app.post('/api/products', (req: Request, res: Response) => {
+  const body = req.body;
+  if (!body.title || !body.category || !body.pricePerUnitMAD || !body.quantityAvailable) {
+    return res.status(400).json({ success: false, error: 'Champs obligatoires manquants (title, category, pricePerUnitMAD, quantityAvailable).' });
+  }
+
+  const newProduct: BackendProductItem = {
+    id: body.id || `prod-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    title: String(body.title).trim(),
+    category: String(body.category).trim(),
+    variety: String(body.variety || body.title.split(' ')[0] || 'Variété standard').trim(),
+    region: String(body.region || 'Souss-Massa (Agadir, Taroudant, Chtouka)'),
+    locationCity: String(body.locationCity || 'Agadir'),
+    quantityAvailable: Number(body.quantityAvailable),
+    unit: String(body.unit || 'Kg'),
+    minOrderQuantity: Number(body.minOrderQuantity || 1),
+    pricePerUnitMAD: Number(body.pricePerUnitMAD),
+    priceType: body.priceType || 'Départ ferme (Sortie de champ)',
+    sellerName: String(body.sellerName || 'Exploitant Agricole').trim(),
+    sellerType: body.sellerType || 'Agriculteur / Producteur',
+    phone: body.phone || '+212600000000',
+    whatsapp: body.whatsapp || '',
+    description: body.description || '',
+    imageUrl: body.imageUrl || 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=800&q=80',
+    isFeatured: Boolean(body.isFeatured),
+    status: body.status || 'Disponible',
+    createdAt: new Date().toISOString().split('T')[0],
+  };
+
+  serverProductsStore.unshift(newProduct);
+  res.status(201).json(newProduct);
+});
+
+// PUT /api/products/:id
+app.put('/api/products/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const index = serverProductsStore.findIndex(p => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ success: false, error: 'Produit introuvable.' });
+  }
+
+  serverProductsStore[index] = {
+    ...serverProductsStore[index],
+    ...req.body,
+    id, // protect ID
+  };
+
+  res.json(serverProductsStore[index]);
+});
+
+// DELETE /api/products/:id
+app.delete('/api/products/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const index = serverProductsStore.findIndex(p => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ success: false, error: 'Produit introuvable.' });
+  }
+
+  serverProductsStore.splice(index, 1);
+  res.json({ success: true, message: 'Produit supprimé avec succès.' });
+});
+
+// ============================================================================
 // 6. CMI PAYMENT & ESCROW GATEWAY PROXY & WEBHOOKS
 // ============================================================================
 app.post('/api/cmi/payment/create', (req: Request, res: Response) => {

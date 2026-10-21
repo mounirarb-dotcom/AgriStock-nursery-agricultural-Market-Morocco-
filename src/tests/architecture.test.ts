@@ -80,7 +80,7 @@ describe('Architecture & Business Services Tests', () => {
       const result = validateSchema(UserProfileSchema, invalidProfile);
       expect(result.success).toBe(false);
       if (result.success === false) {
-        expect(result.errors.length).toBeGreaterThan(0);
+        expect(Object.keys(result.errors).length).toBeGreaterThan(0);
       }
     });
   });
