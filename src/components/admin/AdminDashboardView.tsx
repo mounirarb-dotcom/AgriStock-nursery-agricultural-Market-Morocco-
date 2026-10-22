@@ -60,6 +60,7 @@ import { getCustomAdminKey, saveCustomAdminKey, ALL_ADMIN_MODULE_PERMISSIONS } f
 import { AdminRoleManagementModal } from './AdminRoleManagementModal';
 import { AdminAdsManagementView } from './AdminAdsManagementView';
 import { DevMaintenanceView } from './DevMaintenanceView';
+import { RoleAccessRestrictedNotice } from '../RoleAccessRestrictedNotice';
 
 type AdminSubTab =
   | 'overview'
@@ -418,6 +419,26 @@ export const AdminDashboardView: React.FC = () => {
       setActiveSubTab(accessibleSubTabs[0]?.id || 'overview');
     }
   }, [accessibleSubTabs, activeSubTab]);
+
+  if (!adminSession || !adminSession.token) {
+    return (
+      <RoleAccessRestrictedNotice
+        requiredRole="admin"
+        title={tr(
+          language,
+          'Accès Administrateur Strictement Sécurisé',
+          'فضاء الإدارة محمي برمز أمان خاص',
+          'Strictly Secured Administrator Access'
+        )}
+        description={tr(
+          language,
+          "L'accès aux outils d'administration générale (utilisateurs, modération, séquestre bancaire, litiges, régie publicitaire et journaux d'audit) requiert une authentification administrateur avec clé secrète.",
+          "الولوج إلى مهام إدارة المنصة، النزاعات، وحسابات الضمان يتطلب التحقق برمز الإدارة السري.",
+          "Access to administrative supervision, disputes, escrow and moderation requires authenticated administrator credentials."
+        )}
+      />
+    );
+  }
 
   return (
     <div id="admin-dashboard-container" className="min-h-screen bg-stone-950 text-stone-100 font-sans pb-16">

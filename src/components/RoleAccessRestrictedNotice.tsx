@@ -33,7 +33,7 @@ export const RoleAccessRestrictedNotice: React.FC<Props> = ({
   onSwitchRole,
   onGoToBuyerCatalog,
 }) => {
-  const { language, setActiveTab, userProfile, switchActiveRole, setUserRole } = useApp();
+  const { language, setActiveTab, userProfile, switchActiveRole, setUserRole, setIsAdminLoginModalOpen } = useApp();
 
   const effectiveCurrentRole = currentRole || userProfile?.role || 'buyer';
 
@@ -79,6 +79,10 @@ export const RoleAccessRestrictedNotice: React.FC<Props> = ({
   const handleSwitchRole = () => {
     if (onSwitchRole) {
       onSwitchRole();
+      return;
+    }
+    if (requiredRole === 'admin') {
+      setIsAdminLoginModalOpen(true);
       return;
     }
     if (typeof switchActiveRole === 'function') {

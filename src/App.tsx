@@ -3,142 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
-import { AppProvider, useApp } from './context/AppContext';
-import { Navbar } from './components/Navbar';
-import { BottomNav } from './components/BottomNav';
-import { HomePage } from './components/HomePage';
-import { LandingPage } from './components/LandingPage';
-import { Footer } from './components/Footer';
-import { NurseryManager } from './components/NurseryManager';
-import { ProduceMarketplace } from './components/ProduceMarketplace';
-import { WholesalePriceTicker } from './components/WholesalePriceTicker';
-import { AgriForexLiveTicker } from './components/AgriForexLiveTicker';
-import { GmailManager } from './components/GmailManager';
-import { PlayStoreView } from './components/PlayStoreView';
-import { OfflineIndicator } from './components/OfflineIndicator';
-import { AgriWeatherWidget } from './components/AgriWeatherWidget';
-import { B2BDirectoryView } from './components/B2BDirectoryView';
-import { AdminDashboardView } from './components/admin/AdminDashboardView';
-import { SellerDashboardView } from './components/SellerDashboardView';
-import { BuyerDashboardView } from './components/BuyerDashboardView';
-import { NurseryDashboardView } from './components/NurseryDashboardView';
+import React from 'react';
+import { AppProvider } from './context/AppContext';
 import { APIProvider } from '@vis.gl/react-google-maps';
-import { CarrierDashboardView } from './components/CarrierDashboardView';
-import { AppModalsContainer } from './components/modals/AppModalsContainer';
-import { HomeView } from './components/HomeView';
-import { OrdersView } from './components/OrdersView';
-
-function MainContent() {
-  const {
-    activeTab,
-    setActiveTab,
-    userProfile,
-    setIsOfficialComplianceModalOpen,
-  } = useApp();
-
-  const [gmpQuotaExceeded, setGmpQuotaExceeded] = React.useState(false);
-
-  useEffect(() => {
-    const handleQuota = () => setGmpQuotaExceeded(true);
-    window.addEventListener('gmp-quota-exceeded', handleQuota);
-    return () => window.removeEventListener('gmp-quota-exceeded', handleQuota);
-  }, []);
-
-  useEffect(() => {
-    const handleOpenPlayStore = () => {
-      setActiveTab('playstore');
-    };
-    window.addEventListener('open-playstore-tab', handleOpenPlayStore);
-    return () => window.removeEventListener('open-playstore-tab', handleOpenPlayStore);
-  }, [setActiveTab]);
-
-  const isSellerOrNursery =
-    userProfile.role === 'seller' ||
-    userProfile.role === 'nursery' ||
-    Boolean(userProfile.roles && (userProfile.roles.includes('seller') || userProfile.roles.includes('nursery')));
-
-  return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#F8FAF6] flex flex-col font-sans text-stone-900 antialiased">
-      {gmpQuotaExceeded && (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
-          <span>
-            Google Maps Platform quota reached. If you are the app owner, visit{' '}
-            <a
-              href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-semibold text-amber-950 hover:text-amber-800"
-            >
-              maps developer site
-            </a>{' '}
-            for instructions to update your account.
-          </span>
-        </div>
-      )}
-      <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 md:pb-8 space-y-4 sm:space-y-6">
-        {/* Barre météo agronomique détaillée - pour la vue landing */}
-        {isSellerOrNursery && activeTab === 'landing' && (
-          <AgriWeatherWidget />
-        )}
-
-        {activeTab === 'home' && <HomeView />}
-        {activeTab === 'landing' && <LandingPage />}
-        {activeTab === 'orders' && <OrdersView />}
-        {activeTab === 'nursery' && <NurseryManager />}
-        {(activeTab === 'market' || activeTab === 'farm_standing') && (
-          <ProduceMarketplace initialMode={activeTab === 'farm_standing' ? 'standing' : 'harvested'} />
-        )}
-        {activeTab === 'wholesale' && <WholesalePriceTicker />}
-        {activeTab === 'directory' && (
-          <B2BDirectoryView onOpenComplianceModal={() => setIsOfficialComplianceModalOpen(true)} />
-        )}
-        {activeTab === 'gmail' && <GmailManager />}
-        {activeTab === 'playstore' && <PlayStoreView />}
-        {activeTab === 'admin' && <AdminDashboardView />}
-        {activeTab === 'buyer_space' && <BuyerDashboardView />}
-        {activeTab === 'seller_space' && (
-          <SellerDashboardView
-            onScrollToInventory={() => {
-              const el = document.getElementById('seller-stocks-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-          />
-        )}
-        {activeTab === 'nursery_space' && <NurseryDashboardView />}
-        {activeTab === 'carrier_space' && <CarrierDashboardView />}
-        {activeTab === 'dashboard' && (
-          userProfile.role === 'seller' ? (
-            <SellerDashboardView
-              onScrollToInventory={() => {
-                const el = document.getElementById('seller-stocks-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-            />
-          ) : userProfile.role === 'nursery' ? (
-            <NurseryDashboardView />
-          ) : userProfile.role === 'carrier' ? (
-            <CarrierDashboardView />
-          ) : userProfile.role === 'admin' ? (
-            <AdminDashboardView />
-          ) : (
-            <BuyerDashboardView />
-          )
-        )}
-      </main>
-
-      {/* Petite barre de cotations de la Bourse - Déplacée en bas */}
-      <AgriForexLiveTicker />
-
-      <Footer />
-      <OfflineIndicator />
-      <AppModalsContainer />
-      <BottomNav />
-    </div>
-  );
-}
+import { AppShell } from './components/shell';
 
 export default function App() {
   const mapsApiKey =
@@ -148,7 +16,7 @@ export default function App() {
 
   const appContent = (
     <AppProvider>
-      <MainContent />
+      <AppShell />
     </AppProvider>
   );
 
@@ -170,5 +38,3 @@ export default function App() {
 
   return appContent;
 }
-
-

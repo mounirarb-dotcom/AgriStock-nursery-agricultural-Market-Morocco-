@@ -73,10 +73,10 @@ export const BottomNav: React.FC = () => {
       id: 'profile',
       label: getProfileLabel(),
       icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
-      isActive: isRoleOnboardingOpen || isProfileModalOpen,
+      isActive: activeTab === 'profile' || isRoleOnboardingOpen || isProfileModalOpen,
       onClick: () => {
         setIsEscrowListModalOpen(false);
-        setIsRoleOnboardingOpen(true);
+        setActiveTab('profile');
       },
     };
 
@@ -97,10 +97,10 @@ export const BottomNav: React.FC = () => {
             id: 'offers',
             label: tr(language, 'Mes Offres', 'عروضي', 'My Offers'),
             icon: <Package className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'market' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
+            isActive: (activeTab === 'inventory' || activeTab === 'market') && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
-              setActiveTab('market');
+              setActiveTab('inventory');
             },
           },
           {
@@ -133,10 +133,10 @@ export const BottomNav: React.FC = () => {
             id: 'stock',
             label: tr(language, 'Stock Plants', 'المخزون', 'Stock'),
             icon: <Sprout className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'nursery' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
+            isActive: (activeTab === 'nursery_inventory' || activeTab === 'nursery') && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
-              setActiveTab('nursery');
+              setActiveTab('nursery_inventory');
             },
           },
           {
@@ -237,10 +237,10 @@ export const BottomNav: React.FC = () => {
             id: 'search',
             label: tr(language, 'Chercher', 'بحث', 'Search'),
             icon: <Search className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'market' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
+            isActive: (activeTab === 'market' || activeTab === 'marketplace') && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
-              setActiveTab('market');
+              setActiveTab('marketplace');
             },
           },
           {
