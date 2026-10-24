@@ -1,15 +1,11 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { HomeView } from '../HomeView';
-import { LandingPage } from '../LandingPage';
-import { WholesalePriceTicker } from '../WholesalePriceTicker';
-import { B2BDirectoryView } from '../B2BDirectoryView';
-import { GmailManager } from '../GmailManager';
-import { PlayStoreView } from '../PlayStoreView';
 import { AgriWeatherWidget } from '../AgriWeatherWidget';
 
-// Feature Domain Pages
+// Feature Domain Pages (Clean Architecture)
 import {
+  HomePage,
+  PublicLandingPage,
   RoleSelectionPage,
   LoginPage,
   RegisterPage,
@@ -38,6 +34,7 @@ import {
   AdminUsersPage,
   AdminModerationPage,
   AdminSettingsPage,
+  AdvancedToolsPage,
 } from '../../features';
 
 export const MainContent: React.FC = () => {
@@ -69,8 +66,8 @@ export const MainContent: React.FC = () => {
       )}
 
       {/* 1. Public & Auth */}
-      {activeTab === 'home' && <HomeView />}
-      {activeTab === 'landing' && <LandingPage />}
+      {activeTab === 'home' && <HomePage />}
+      {activeTab === 'landing' && <PublicLandingPage />}
       {activeTab === 'role_selection' && <RoleSelectionPage />}
       {activeTab === 'login' && <LoginPage />}
       {activeTab === 'register' && <RegisterPage />}
@@ -120,13 +117,10 @@ export const MainContent: React.FC = () => {
       {activeTab === 'admin_moderation' && <AdminModerationPage />}
       {activeTab === 'admin_settings' && <AdminSettingsPage />}
 
-      {/* 11. Outils Métiers Existants */}
-      {activeTab === 'wholesale' && <WholesalePriceTicker />}
-      {activeTab === 'directory' && (
-        <B2BDirectoryView onOpenComplianceModal={() => setIsOfficialComplianceModalOpen(true)} />
+      {/* 11. Outils Métiers Avancés & Services Réseau */}
+      {(activeTab === 'wholesale' || activeTab === 'directory' || activeTab === 'gmail' || activeTab === 'playstore') && (
+        <AdvancedToolsPage />
       )}
-      {activeTab === 'gmail' && <GmailManager />}
-      {activeTab === 'playstore' && <PlayStoreView />}
 
       {/* 12. Redirection 'dashboard' selon rôle actif */}
       {activeTab === 'dashboard' && (

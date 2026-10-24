@@ -162,7 +162,7 @@ export const AdminDashboardView: React.FC = () => {
     reference: string;
     currentRate: number;
     subtotal: number;
-    type?: 'escrow' | 'transport';
+    type?: 'escrow' | 'transport' | 'transport_global';
     carrierName?: string;
   } | null>(null);
   const [newCommissionPercentInput, setNewCommissionPercentInput] = useState('4.5');
@@ -229,7 +229,7 @@ export const AdminDashboardView: React.FC = () => {
       totalListings,
       pendingModerationTotal,
     };
-  }, [escrowTransactions, userAccountsList, nurseryLots, produceListings, farmStandingListings]);
+  }, [escrowTransactions, userAccountsList, nurseryLots, produceListings, farmStandingListings, transportBookings]);
 
   // Combined Listings for Moderation Table
   const combinedListings = useMemo(() => {
@@ -1316,17 +1316,39 @@ export const AdminDashboardView: React.FC = () => {
                 <p className="text-xs text-stone-400 mt-1">Tarif préférentiel abonnement PRO</p>
               </div>
 
-              <div className="p-5 rounded-xl bg-gradient-to-br from-cyan-950/80 via-stone-900 to-stone-900 border border-cyan-800/80 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-cyan-300 font-bold">Commission Transport</span>
-                  <span className="px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-200 border border-cyan-700 text-[10px] font-bold">
-                    🚛 Fret & Flotte
-                  </span>
+              <div className="p-5 rounded-xl bg-gradient-to-br from-cyan-950/80 via-stone-900 to-stone-900 border border-cyan-800/80 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-cyan-300 font-bold">Commission Transport</span>
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-200 border border-cyan-700 text-[10px] font-bold">
+                      🚛 Fret & Flotte
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between mt-1">
+                    <div className="text-2xl font-black text-cyan-300 font-mono">
+                      {((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1)} %
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderForCommission({
+                          id: 'global-transport-settings',
+                          reference: 'RÉSEAU-FRET-GLOBAL',
+                          currentRate: platformSettings.defaultTransportCommissionRate ?? 0.08,
+                          subtotal: transportBookings.reduce((acc, b) => acc + b.totalPriceMAD, 0),
+                          type: 'transport_global',
+                        });
+                        setNewCommissionPercentInput(
+                          ((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1)
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-cyan-900/80 hover:bg-cyan-800 text-cyan-200 border border-cyan-700 text-[11px] font-sans font-bold transition cursor-pointer"
+                    >
+                      Ajuster Taux
+                    </button>
+                  </div>
                 </div>
-                <div className="text-2xl font-black text-cyan-300 font-mono mt-1">
-                  {((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1)} %
-                </div>
-                <p className="text-xs text-stone-400 mt-1">
+                <p className="text-xs text-stone-400 mt-2">
                   Total prélevé fret: <strong className="text-cyan-300">{metrics.totalTransportCommissionsMAD.toLocaleString()} MAD</strong>
                 </p>
               </div>
@@ -1444,21 +1466,73 @@ export const AdminDashboardView: React.FC = () => {
             {/* TABLE 2: COMMISSIONS TRANSPORT & FRET */}
             {(commissionViewType === 'all' || commissionViewType === 'transport') && (
               <div className="p-5 rounded-xl bg-stone-900 border border-cyan-900/60 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse" />
                     <div>
-                      <h3 className="text-sm font-bold text-cyan-200">
-                        Gestion des Commissions Transport & Fret Logistique
+                      <h3 className="text-sm font-bold text-cyan-200 flex items-center gap-2">
+                        <span>Gestion des Commissions Transport & Fret Logistique</span>
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] font-mono">
+                          Taux Réseau: {((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1)}%
+                        </span>
                       </h3>
                       <p className="text-[11px] text-stone-400">
-                        Prélèvement plateforme sur les réservations de camions frigorifiques et fret agricole
+                        Prélèvement plateforme en dirhams (MAD) sur les réservations de camions frigorifiques et fret agricole
                       </p>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-xs font-bold font-mono">
-                    {transportBookings.length} course(s)
-                  </span>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-1 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-800 text-xs font-bold font-mono">
+                      {transportBookings.length} course(s)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderForCommission({
+                          id: 'global-transport-settings',
+                          reference: 'RÉSEAU-FRET-GLOBAL',
+                          currentRate: platformSettings.defaultTransportCommissionRate ?? 0.08,
+                          subtotal: transportBookings.reduce((acc, b) => acc + b.totalPriceMAD, 0),
+                          type: 'transport_global',
+                        });
+                        setNewCommissionPercentInput(
+                          ((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1)
+                        );
+                      }}
+                      className="px-3 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+                    >
+                      <span>Ajuster Taux Réseau</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mini métriques transport */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                  <div className="p-2.5 rounded-lg bg-stone-950/80 border border-stone-800">
+                    <span className="text-[10px] text-stone-400 uppercase font-semibold block">CA Fret Brut</span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-stone-100">
+                      {transportBookings.reduce((sum, b) => sum + b.totalPriceMAD, 0).toLocaleString()} MAD
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-stone-950/80 border border-stone-800">
+                    <span className="text-[10px] text-cyan-400 uppercase font-semibold block">Commissions Fret</span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-cyan-300">
+                      {metrics.totalTransportCommissionsMAD.toLocaleString()} MAD
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-stone-950/80 border border-stone-800">
+                    <span className="text-[10px] text-stone-400 uppercase font-semibold block">Net Transporteurs</span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-emerald-400">
+                      {transportBookings.reduce((sum, b) => sum + b.carrierPayoutMAD, 0).toLocaleString()} MAD
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-stone-950/80 border border-stone-800">
+                    <span className="text-[10px] text-stone-400 uppercase font-semibold block">Volume Fret</span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-stone-200">
+                      {transportBookings.reduce((sum, b) => sum + (b.cargoVolumeTonnes || 0), 0)} Tonnes
+                    </span>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1477,48 +1551,60 @@ export const AdminDashboardView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-800/60 font-mono">
-                      {transportBookings.map((b) => {
-                        const calculatedRate = b.totalPriceMAD > 0 ? (b.platformCommissionMAD / b.totalPriceMAD) : (platformSettings.defaultTransportCommissionRate ?? 0.08);
-                        return (
-                          <tr key={b.id} className="hover:bg-cyan-950/20 transition">
-                            <td className="py-3 px-4 text-cyan-200 font-bold">{b.bookingRef}</td>
-                            <td className="py-3 px-4 font-sans text-stone-200 font-semibold">{b.carrierName}</td>
-                            <td className="py-3 px-4 font-sans text-stone-300">
-                              <span>{b.originCity}</span> ➔ <span className="font-bold text-white">{b.destinationCity}</span>
-                              <span className="block text-[10px] text-stone-500 font-mono">{b.distanceKm} km</span>
-                            </td>
-                            <td className="py-3 px-4 font-sans text-stone-300">
-                              <span className="inline-block px-2 py-0.5 rounded bg-stone-800 text-[10px] font-bold text-cyan-300 border border-stone-700">
-                                {b.vehicleType}
-                              </span>
-                              <span className="block text-[11px] text-stone-400 mt-0.5">{b.cargoVolumeTonnes} Tonnes ({b.cargoType})</span>
-                            </td>
-                            <td className="py-3 px-4 font-bold text-stone-100">{b.totalPriceMAD.toLocaleString()} MAD</td>
-                            <td className="py-3 px-4 text-cyan-300 font-bold">{(calculatedRate * 100).toFixed(1)}%</td>
-                            <td className="py-3 px-4 text-emerald-400 font-bold">{b.platformCommissionMAD.toLocaleString()} MAD</td>
-                            <td className="py-3 px-4 text-stone-300 font-bold">{b.carrierPayoutMAD.toLocaleString()} MAD</td>
-                            <td className="py-3 px-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedOrderForCommission({
-                                    id: b.id,
-                                    reference: b.bookingRef,
-                                    currentRate: calculatedRate,
-                                    subtotal: b.totalPriceMAD,
-                                    type: 'transport',
-                                    carrierName: b.carrierName,
-                                  });
-                                  setNewCommissionPercentInput((calculatedRate * 100).toFixed(1));
-                                }}
-                                className="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-700 text-xs font-sans font-bold transition"
-                              >
-                                Ajuster
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {transportBookings.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="py-8 text-center text-stone-400">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <Truck className="w-8 h-8 text-cyan-500/60" />
+                              <span className="font-semibold text-stone-300">Aucune réservation de transport enregistrée pour le moment.</span>
+                              <span className="text-[11px] text-stone-500">Les courses de camions frigorifiques et fret agricole apparaîtront ici avec calcul automatique de la commission plateforme.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        transportBookings.map((b) => {
+                          const calculatedRate = b.totalPriceMAD > 0 ? (b.platformCommissionMAD / b.totalPriceMAD) : (platformSettings.defaultTransportCommissionRate ?? 0.08);
+                          return (
+                            <tr key={b.id} className="hover:bg-cyan-950/20 transition">
+                              <td className="py-3 px-4 text-cyan-200 font-bold">{b.bookingRef}</td>
+                              <td className="py-3 px-4 font-sans text-stone-200 font-semibold">{b.carrierName}</td>
+                              <td className="py-3 px-4 font-sans text-stone-300">
+                                <span>{b.originCity}</span> ➔ <span className="font-bold text-white">{b.destinationCity}</span>
+                                <span className="block text-[10px] text-stone-500 font-mono">{b.distanceKm} km</span>
+                              </td>
+                              <td className="py-3 px-4 font-sans text-stone-300">
+                                <span className="inline-block px-2 py-0.5 rounded bg-stone-800 text-[10px] font-bold text-cyan-300 border border-stone-700">
+                                  {b.vehicleType}
+                                </span>
+                                <span className="block text-[11px] text-stone-400 mt-0.5">{b.cargoVolumeTonnes} Tonnes ({b.cargoType})</span>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-stone-100">{b.totalPriceMAD.toLocaleString()} MAD</td>
+                              <td className="py-3 px-4 text-cyan-300 font-bold">{(calculatedRate * 100).toFixed(1)}%</td>
+                              <td className="py-3 px-4 text-emerald-400 font-bold">{b.platformCommissionMAD.toLocaleString()} MAD</td>
+                              <td className="py-3 px-4 text-stone-300 font-bold">{b.carrierPayoutMAD.toLocaleString()} MAD</td>
+                              <td className="py-3 px-4 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOrderForCommission({
+                                      id: b.id,
+                                      reference: b.bookingRef,
+                                      currentRate: calculatedRate,
+                                      subtotal: b.totalPriceMAD,
+                                      type: 'transport',
+                                      carrierName: b.carrierName,
+                                    });
+                                    setNewCommissionPercentInput((calculatedRate * 100).toFixed(1));
+                                  }}
+                                  className="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-700 text-xs font-sans font-bold transition cursor-pointer"
+                                >
+                                  Ajuster
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -2714,22 +2800,32 @@ export const AdminDashboardView: React.FC = () => {
       {selectedOrderForCommission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className={`bg-stone-900 border rounded-2xl p-6 max-w-md w-full text-stone-100 space-y-4 ${
-            selectedOrderForCommission.type === 'transport' ? 'border-cyan-800' : 'border-purple-900'
+            selectedOrderForCommission.type === 'transport' || selectedOrderForCommission.type === 'transport_global'
+              ? 'border-cyan-800'
+              : 'border-purple-900'
           }`}>
             <div className="flex items-center justify-between">
               <h3 className={`font-bold text-base ${
-                selectedOrderForCommission.type === 'transport' ? 'text-cyan-300' : 'text-purple-300'
+                selectedOrderForCommission.type === 'transport' || selectedOrderForCommission.type === 'transport_global'
+                  ? 'text-cyan-300'
+                  : 'text-purple-300'
               }`}>
-                {selectedOrderForCommission.type === 'transport'
-                  ? 'Ajuster Commission Transport & Fret'
+                {selectedOrderForCommission.type === 'transport_global'
+                  ? 'Ajuster Taux Général Transport & Fret'
+                  : selectedOrderForCommission.type === 'transport'
+                  ? 'Ajuster Commission Course Transport'
                   : 'Ajuster Commission Transaction'}
               </h3>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                selectedOrderForCommission.type === 'transport'
+                selectedOrderForCommission.type === 'transport' || selectedOrderForCommission.type === 'transport_global'
                   ? 'bg-cyan-900/60 text-cyan-200 border border-cyan-700'
                   : 'bg-purple-900/60 text-purple-200 border border-purple-700'
               }`}>
-                {selectedOrderForCommission.type === 'transport' ? 'Fret Logistique' : 'Vente Produit'}
+                {selectedOrderForCommission.type === 'transport_global'
+                  ? 'Réseau Fret'
+                  : selectedOrderForCommission.type === 'transport'
+                  ? 'Fret Course'
+                  : 'Vente Produit'}
               </span>
             </div>
             <div>
@@ -2737,12 +2833,18 @@ export const AdminDashboardView: React.FC = () => {
               {selectedOrderForCommission.carrierName && (
                 <p className="text-xs text-cyan-300 mt-0.5">Transporteur : {selectedOrderForCommission.carrierName}</p>
               )}
-              <p className="text-xs text-stone-400 mt-0.5">Montant HT : {selectedOrderForCommission.subtotal.toLocaleString()} MAD</p>
+              {selectedOrderForCommission.subtotal > 0 && (
+                <p className="text-xs text-stone-400 mt-0.5">
+                  Montant HT : {selectedOrderForCommission.subtotal.toLocaleString()} MAD
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-300 uppercase mb-1.5">
-                Nouveau Taux de Commission (%) :
+                {selectedOrderForCommission.type === 'transport_global'
+                  ? 'Nouveau Taux Réseau Standard Transport (%) :'
+                  : 'Nouveau Taux de Commission (%) :'}
               </label>
               <input
                 type="number"
@@ -2754,7 +2856,9 @@ export const AdminDashboardView: React.FC = () => {
                 className="w-full p-2.5 rounded-xl bg-stone-950 border border-stone-700 text-sm font-mono text-stone-100"
               />
               <span className="text-[11px] text-emerald-400 mt-1 block">
-                Montant calculé : {Math.round(selectedOrderForCommission.subtotal * (parseFloat(newCommissionPercentInput || '0') / 100))} MAD
+                {selectedOrderForCommission.type === 'transport_global'
+                  ? 'Ce taux sera appliqué à toutes les futures réservations de transport frigorifique.'
+                  : `Montant calculé : ${Math.round(selectedOrderForCommission.subtotal * (parseFloat(newCommissionPercentInput || '0') / 100))} MAD`}
               </span>
             </div>
 
@@ -2762,7 +2866,7 @@ export const AdminDashboardView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedOrderForCommission(null)}
-                className="px-3 py-1.5 rounded-lg bg-stone-800 text-xs font-semibold text-stone-300"
+                className="px-3 py-1.5 rounded-lg bg-stone-800 text-xs font-semibold text-stone-300 cursor-pointer"
               >
                 Annuler
               </button>
@@ -2770,15 +2874,21 @@ export const AdminDashboardView: React.FC = () => {
                 type="button"
                 onClick={async () => {
                   const rate = parseFloat(newCommissionPercentInput) / 100;
-                  if (selectedOrderForCommission.type === 'transport') {
+                  if (selectedOrderForCommission.type === 'transport_global') {
+                    await updatePlatformSettings({ defaultTransportCommissionRate: rate });
+                    setSettingsForm((prev) => ({
+                      ...prev,
+                      defaultTransportCommissionRate: (rate * 100).toFixed(1),
+                    }));
+                  } else if (selectedOrderForCommission.type === 'transport') {
                     await updateTransportCommission(selectedOrderForCommission.id, rate);
                   } else {
                     await updateTransactionCommission(selectedOrderForCommission.id, rate);
                   }
                   setSelectedOrderForCommission(null);
                 }}
-                className={`px-4 py-1.5 rounded-lg text-white text-xs font-bold transition ${
-                  selectedOrderForCommission.type === 'transport'
+                className={`px-4 py-1.5 rounded-lg text-white text-xs font-bold transition cursor-pointer ${
+                  selectedOrderForCommission.type === 'transport' || selectedOrderForCommission.type === 'transport_global'
                     ? 'bg-cyan-600 hover:bg-cyan-500'
                     : 'bg-purple-600 hover:bg-purple-500'
                 }`}

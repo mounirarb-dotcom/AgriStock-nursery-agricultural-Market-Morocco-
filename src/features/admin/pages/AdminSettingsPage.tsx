@@ -21,6 +21,7 @@ export const AdminSettingsPage: React.FC = () => {
   } = useApp();
 
   const [sellerRate, setSellerRate] = useState((platformSettings.defaultSellerCommissionRate * 100).toString());
+  const [transportRate, setTransportRate] = useState(((platformSettings.defaultTransportCommissionRate ?? 0.08) * 100).toFixed(1));
   const [escrowFeeMAD, setEscrowFeeMAD] = useState(platformSettings.minEscrowFeeMAD.toString());
   const [maintenance, setMaintenance] = useState(platformSettings.maintenanceMode || false);
   const [isSaved, setIsSaved] = useState(false);
@@ -39,6 +40,7 @@ export const AdminSettingsPage: React.FC = () => {
     e.preventDefault();
     updatePlatformSettings({
       defaultSellerCommissionRate: parseFloat(sellerRate) / 100 || 0.05,
+      defaultTransportCommissionRate: parseFloat(transportRate) / 100 || 0.08,
       minEscrowFeeMAD: parseFloat(escrowFeeMAD) || 50,
       maintenanceMode: maintenance,
     });
@@ -94,6 +96,25 @@ export const AdminSettingsPage: React.FC = () => {
                 className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold focus:border-purple-500 focus:outline-hidden"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Taux de commission transport & fret (%)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="25"
+                value={transportRate}
+                onChange={(e) => setTransportRate(e.target.value)}
+                className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold focus:border-cyan-500 focus:outline-hidden text-cyan-800"
+                required
+              />
+              <span className="text-[10px] text-stone-400 mt-0.5 block">
+                Prélèvement plateforme sur les réservations de transport frigorifique
+              </span>
             </div>
 
             <div>

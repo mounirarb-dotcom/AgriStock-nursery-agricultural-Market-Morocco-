@@ -4,6 +4,7 @@ import { tr } from '../utils/translations';
 import { MoroccanRegion, ProduceListing, NurseryLot } from '../types';
 import { SmartImage } from './SmartImage';
 import { VoiceSearchButton } from './VoiceSearchButton';
+import { B2BAdBanner } from './B2BAdBanner';
 import {
   Search,
   Sprout,
@@ -187,6 +188,9 @@ export const HomeView: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200 pb-20 md:pb-12">
+      {/* 0. Barre Publicité B2B & Partenaires Officiels (Partie Haute) */}
+      <B2BAdBanner className="shadow-xs border-stone-800" />
+
       {/* 1. EN-TÊTE ÉPURÉ : App Brand + Localisation + Météo Compacte */}
       <div className="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">

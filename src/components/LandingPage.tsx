@@ -97,6 +97,11 @@ export const LandingPage: React.FC = () => {
       {/* 1. Header Promo Bar */}
       <HeaderLanding />
 
+      {/* 1.5 Barre Publicité B2B & Partenaires Officiels (Partie Haute) */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full -mb-4 sm:-mb-6">
+        <B2BAdBanner className="shadow-lg border-emerald-900/40" />
+      </div>
+
       {/* 2. Hero Section Principale */}
       <HeroSection onSearch={(term) => setLandingSearchFilter(term)} />
 

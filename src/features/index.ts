@@ -1,4 +1,6 @@
 // Public & Auth
+export { HomePage } from './home/pages/HomePage';
+export { PublicLandingPage } from './home/pages/PublicLandingPage';
 export { RoleSelectionPage } from './auth/pages/RoleSelectionPage';
 export { LoginPage } from './auth/pages/LoginPage';
 export { RegisterPage } from './auth/pages/RegisterPage';
@@ -47,3 +49,6 @@ export { AdminDashboardPage } from './admin/pages/AdminDashboardPage';
 export { AdminUsersPage } from './admin/pages/AdminUsersPage';
 export { AdminModerationPage } from './admin/pages/AdminModerationPage';
 export { AdminSettingsPage } from './admin/pages/AdminSettingsPage';
+
+// Advanced Tools & Secondary Services
+export { AdvancedToolsPage } from './tools/pages/AdvancedToolsPage';

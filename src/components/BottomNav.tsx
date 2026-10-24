@@ -156,33 +156,33 @@ export const BottomNav: React.FC = () => {
       case 'carrier':
         return [
           {
-            id: 'home',
-            label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
+            id: 'dashboard',
+            label: tr(language, 'Tableau de bord', 'لوحة القيادة', 'Dashboard'),
             icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'carrier_space' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
+            isActive: activeTab === 'carrier_space' || activeTab === 'transport_dashboard',
             onClick: () => {
               setIsEscrowListModalOpen(false);
-              setActiveTab('carrier_space');
+              setActiveTab('transport_dashboard');
             },
           },
           {
             id: 'missions',
-            label: tr(language, 'Missions', 'المهام', 'Missions'),
+            label: tr(language, 'Missions Fret', 'مهام الشحن', 'Freight Jobs'),
             icon: <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'carrier_space',
+            isActive: activeTab === 'logistics' || activeTab === 'transport_request',
             onClick: () => {
               setIsEscrowListModalOpen(false);
-              setActiveTab('carrier_space');
+              setActiveTab('logistics');
             },
           },
           {
-            id: 'fleet',
-            label: tr(language, 'Flotte Frigo', 'الأسطول', 'Fleet'),
+            id: 'tracking',
+            label: tr(language, 'Suivi & Flotte', 'تتبع الشحنات', 'Tracking'),
             icon: <Truck className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'carrier_space',
+            isActive: activeTab === 'delivery_tracking',
             onClick: () => {
               setIsEscrowListModalOpen(false);
-              setActiveTab('carrier_space');
+              setActiveTab('delivery_tracking');
             },
           },
           messagesItem,
@@ -192,30 +192,36 @@ export const BottomNav: React.FC = () => {
       case 'admin':
         return [
           {
-            id: 'home',
-            label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
-            icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'home' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
+            id: 'admin_dashboard',
+            label: tr(language, 'Supervision', 'لوحة الإدارة', 'Overview'),
+            icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />,
+            isActive: activeTab === 'admin' || activeTab === 'admin_dashboard',
             onClick: () => {
               setIsEscrowListModalOpen(false);
-              setActiveTab('home');
+              setActiveTab('admin_dashboard');
             },
           },
           {
-            id: 'market',
-            label: tr(language, 'Marché', 'السوق', 'Market'),
-            icon: <Store className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'market',
-            onClick: () => setActiveTab('market'),
+            id: 'admin_users',
+            label: tr(language, 'Utilisateurs', 'المستخدمين', 'Users'),
+            icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />,
+            isActive: activeTab === 'admin_users',
+            onClick: () => setActiveTab('admin_users'),
           },
           {
-            id: 'admin',
-            label: tr(language, 'Admin', 'الإدارة', 'Admin'),
-            icon: <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'admin',
-            onClick: () => setActiveTab('admin'),
+            id: 'admin_moderation',
+            label: tr(language, 'Modération', 'الرقابة', 'Moderation'),
+            icon: <Store className="w-4 h-4 sm:w-5 sm:h-5" />,
+            isActive: activeTab === 'admin_moderation',
+            onClick: () => setActiveTab('admin_moderation'),
           },
-          messagesItem,
+          {
+            id: 'admin_settings',
+            label: tr(language, 'Paramètres', 'الإعدادات', 'Settings'),
+            icon: <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />,
+            isActive: activeTab === 'admin_settings',
+            onClick: () => setActiveTab('admin_settings'),
+          },
           userProfileItem,
         ];
 
@@ -224,20 +230,10 @@ export const BottomNav: React.FC = () => {
       case 'buyer':
         return [
           {
-            id: 'home',
-            label: tr(language, 'Accueil', 'الرئيسية', 'Home'),
-            icon: <Home className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: activeTab === 'home' && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
-            onClick: () => {
-              setIsEscrowListModalOpen(false);
-              setActiveTab('home');
-            },
-          },
-          {
-            id: 'search',
-            label: tr(language, 'Chercher', 'بحث', 'Search'),
-            icon: <Search className="w-4 h-4 sm:w-5 sm:h-5" />,
-            isActive: (activeTab === 'market' || activeTab === 'marketplace') && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
+            id: 'marketplace',
+            label: tr(language, 'Marché', 'السوق', 'Market'),
+            icon: <Store className="w-4 h-4 sm:w-5 sm:h-5" />,
+            isActive: (activeTab === 'market' || activeTab === 'marketplace' || activeTab === 'home') && !isEscrowListModalOpen && !isProfileModalOpen && !isRoleOnboardingOpen,
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('marketplace');
@@ -252,6 +248,16 @@ export const BottomNav: React.FC = () => {
             onClick: () => {
               setIsEscrowListModalOpen(false);
               setActiveTab('favorites');
+            },
+          },
+          {
+            id: 'orders',
+            label: tr(language, 'Commandes', 'الطلبيات', 'Orders'),
+            icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />,
+            isActive: activeTab === 'orders' || isEscrowListModalOpen,
+            onClick: () => {
+              setIsEscrowListModalOpen(false);
+              setActiveTab('orders');
             },
           },
           messagesItem,

@@ -63,41 +63,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             labelFr: 'Tableau de bord Vendeur',
             labelAr: 'لوحة قيادة البائع',
             icon: <Home className="w-5 h-5 text-amber-500" />,
-            isActive: activeTab === 'seller_space',
+            isActive: activeTab === 'seller_space' || activeTab === 'seller_dashboard',
             onClick: () => setActiveTab('seller_space'),
           },
           {
-            id: 'market',
-            labelFr: 'Mes Annonces & Stocks',
-            labelAr: 'عروضي ومخزوني',
+            id: 'inventory',
+            labelFr: 'Inventaire & Stocks',
+            labelAr: 'المخزون وعروض البيع',
             icon: <Package className="w-5 h-5 text-emerald-500" />,
-            isActive: activeTab === 'market',
-            onClick: () => setActiveTab('market'),
+            isActive: activeTab === 'inventory' || activeTab === 'inventory_form' || activeTab === 'inventory_item',
+            onClick: () => setActiveTab('inventory'),
           },
           {
             id: 'orders',
-            labelFr: 'Commandes Reçues (Séquestre)',
+            labelFr: 'Commandes Ventes (Séquestre)',
             labelAr: 'طلبات البيع والضمان',
             icon: <TrendingUp className="w-5 h-5 text-teal-500" />,
-            isActive: activeTab === 'orders',
+            isActive: activeTab === 'orders' || activeTab === 'order_detail',
             onClick: () => setActiveTab('orders'),
             badge: escrowTransactions.filter(t => t.status === 'funds_held').length || undefined,
           },
           {
-            id: 'farm_standing',
-            labelFr: 'Récoltes sur Pied',
-            labelAr: 'محاصيل على رؤوس أشجارها',
-            icon: <Store className="w-5 h-5 text-amber-600" />,
-            isActive: activeTab === 'farm_standing',
-            onClick: () => setActiveTab('farm_standing'),
+            id: 'notifications',
+            labelFr: 'Notifications & Alertes',
+            labelAr: 'التنبيهات والإشعارات',
+            icon: <Bell className="w-5 h-5 text-amber-500" />,
+            isActive: activeTab === 'notifications',
+            onClick: () => setActiveTab('notifications'),
           },
           {
-            id: 'wholesale',
-            labelFr: 'Bourse & Prix Mercuriale',
-            labelAr: 'بورصة أسعار الجملة',
-            icon: <TrendingUp className="w-5 h-5 text-blue-500" />,
-            isActive: activeTab === 'wholesale',
-            onClick: () => setActiveTab('wholesale'),
+            id: 'profile',
+            labelFr: 'Profil Exploitation',
+            labelAr: 'ملف الضيعة الفلاحية',
+            icon: <Users className="w-5 h-5 text-stone-600" />,
+            isActive: activeTab === 'profile' || activeTab === 'settings',
+            onClick: () => setActiveTab('profile'),
           },
         ];
 
@@ -108,32 +108,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             labelFr: 'Espace Pépiniériste',
             labelAr: 'فضاء صاحب المشتل',
             icon: <Home className="w-5 h-5 text-emerald-500" />,
-            isActive: activeTab === 'nursery_space',
+            isActive: activeTab === 'nursery_space' || activeTab === 'nursery_dashboard',
             onClick: () => setActiveTab('nursery_space'),
           },
           {
-            id: 'nursery',
-            labelFr: 'Gestion Lots & Plants',
-            labelAr: 'إدارة الشتائل والمشاتل',
+            id: 'nursery_inventory',
+            labelFr: 'Lots & Plants ONSSA',
+            labelAr: 'الشتائل والمخزون المعتمد',
             icon: <Sprout className="w-5 h-5 text-teal-500" />,
-            isActive: activeTab === 'nursery',
-            onClick: () => setActiveTab('nursery'),
+            isActive: activeTab === 'nursery' || activeTab === 'nursery_inventory' || activeTab === 'nursery_lot_detail' || activeTab === 'nursery_lot_form',
+            onClick: () => setActiveTab('nursery_inventory'),
           },
           {
             id: 'orders',
-            labelFr: 'Commandes Plants',
+            labelFr: 'Commandes & Réservations',
             labelAr: 'طلبيات الشتائل',
             icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-            isActive: activeTab === 'orders',
+            isActive: activeTab === 'orders' || activeTab === 'order_detail',
             onClick: () => setActiveTab('orders'),
           },
           {
-            id: 'wholesale',
-            labelFr: 'Prix & Cotations',
-            labelAr: 'الأسعار والبورصة',
-            icon: <TrendingUp className="w-5 h-5 text-blue-500" />,
-            isActive: activeTab === 'wholesale',
-            onClick: () => setActiveTab('wholesale'),
+            id: 'notifications',
+            labelFr: 'Alertes & Traitements',
+            labelAr: 'تنبيهات المداواة',
+            icon: <Bell className="w-5 h-5 text-amber-500" />,
+            isActive: activeTab === 'notifications',
+            onClick: () => setActiveTab('notifications'),
+          },
+          {
+            id: 'profile',
+            labelFr: 'Agrément & Profil Mépinière',
+            labelAr: 'اعتماد المشتل والملف',
+            icon: <Users className="w-5 h-5 text-stone-600" />,
+            isActive: activeTab === 'profile' || activeTab === 'settings',
+            onClick: () => setActiveTab('profile'),
           },
         ];
 
@@ -144,52 +152,84 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             labelFr: 'Espace Fret & Transport',
             labelAr: 'فضاء النقل الفلاحي',
             icon: <Home className="w-5 h-5 text-blue-500" />,
-            isActive: activeTab === 'carrier_space',
-            onClick: () => setActiveTab('carrier_space'),
+            isActive: activeTab === 'carrier_space' || activeTab === 'transport_dashboard',
+            onClick: () => setActiveTab('transport_dashboard'),
           },
           {
-            id: 'market',
-            labelFr: 'Marché Expéditions',
-            labelAr: 'سوق الشحنات',
-            icon: <Package className="w-5 h-5 text-emerald-500" />,
-            isActive: activeTab === 'market',
-            onClick: () => setActiveTab('market'),
+            id: 'logistics',
+            labelFr: 'Missions de Fret Agricole',
+            labelAr: 'مهام الشحن واللوجستيك',
+            icon: <ClipboardList className="w-5 h-5 text-emerald-500" />,
+            isActive: activeTab === 'logistics' || activeTab === 'transport_request',
+            onClick: () => setActiveTab('logistics'),
           },
           {
-            id: 'orders',
-            labelFr: 'Livraisons Sécurisées',
-            labelAr: 'تتبع الشحنات والضمان',
+            id: 'delivery_tracking',
+            labelFr: 'Suivi Livraisons & Flotte',
+            labelAr: 'تتبع الشحنات والأسطول',
             icon: <Truck className="w-5 h-5 text-amber-500" />,
-            isActive: activeTab === 'orders',
-            onClick: () => setActiveTab('orders'),
+            isActive: activeTab === 'delivery_tracking',
+            onClick: () => setActiveTab('delivery_tracking'),
+          },
+          {
+            id: 'notifications',
+            labelFr: 'Alertes & Trajets',
+            labelAr: 'تنبيهات الرحلات',
+            icon: <Bell className="w-5 h-5 text-amber-500" />,
+            isActive: activeTab === 'notifications',
+            onClick: () => setActiveTab('notifications'),
+          },
+          {
+            id: 'profile',
+            labelFr: 'Profil Transporteur',
+            labelAr: 'ملف الناقل المعتمد',
+            icon: <Users className="w-5 h-5 text-stone-600" />,
+            isActive: activeTab === 'profile' || activeTab === 'settings',
+            onClick: () => setActiveTab('profile'),
           },
         ];
 
       case 'admin':
         return [
           {
-            id: 'admin',
+            id: 'admin_dashboard',
             labelFr: 'Supervision Générale',
             labelAr: 'لوحة الإدارة الشاملة',
             icon: <ShieldCheck className="w-5 h-5 text-purple-600" />,
-            isActive: activeTab === 'admin',
-            onClick: () => setActiveTab('admin'),
+            isActive: activeTab === 'admin' || activeTab === 'admin_dashboard',
+            onClick: () => setActiveTab('admin_dashboard'),
           },
           {
-            id: 'home',
-            labelFr: 'Aperçu Marché Public',
-            labelAr: 'معاينة السوق',
-            icon: <Home className="w-5 h-5 text-emerald-600" />,
-            isActive: activeTab === 'home',
-            onClick: () => setActiveTab('home'),
+            id: 'admin_users',
+            labelFr: 'Gestion Utilisateurs',
+            labelAr: 'إدارة المستخدمين',
+            icon: <Users className="w-5 h-5 text-blue-500" />,
+            isActive: activeTab === 'admin_users',
+            onClick: () => setActiveTab('admin_users'),
           },
           {
-            id: 'market',
-            labelFr: 'Catalogue Produits',
-            labelAr: 'كتالوج المنتجات',
+            id: 'admin_moderation',
+            labelFr: 'Modération des Annonces',
+            labelAr: 'مراقبة العروض',
             icon: <Store className="w-5 h-5 text-amber-600" />,
-            isActive: activeTab === 'market',
-            onClick: () => setActiveTab('market'),
+            isActive: activeTab === 'admin_moderation',
+            onClick: () => setActiveTab('admin_moderation'),
+          },
+          {
+            id: 'admin_settings',
+            labelFr: 'Paramètres & Commissions',
+            labelAr: 'الإعدادات والعمولات',
+            icon: <Settings className="w-5 h-5 text-teal-600" />,
+            isActive: activeTab === 'admin_settings',
+            onClick: () => setActiveTab('admin_settings'),
+          },
+          {
+            id: 'profile',
+            labelFr: 'Compte Administrateur',
+            labelAr: 'حساب الإدارة',
+            icon: <Users className="w-5 h-5 text-stone-600" />,
+            isActive: activeTab === 'profile',
+            onClick: () => setActiveTab('profile'),
           },
         ];
 
@@ -198,36 +238,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       case 'buyer':
         return [
           {
-            id: 'home',
-            labelFr: 'Accueil & Tendances',
-            labelAr: 'الرئيسية والفرص',
-            icon: <Home className="w-5 h-5 text-emerald-600" />,
-            isActive: activeTab === 'home',
-            onClick: () => setActiveTab('home'),
-          },
-          {
-            id: 'market',
-            labelFr: 'Marché Fruits & Légumes',
+            id: 'marketplace',
+            labelFr: 'Marché & Primeurs',
             labelAr: 'سوق الخضر والفواكه',
-            icon: <Store className="w-5 h-5 text-amber-500" />,
-            isActive: activeTab === 'market',
-            onClick: () => setActiveTab('market'),
-          },
-          {
-            id: 'nursery',
-            labelFr: 'Plants de Pépinière ONSSA',
-            labelAr: 'شتائل المشاتل المعتمدة',
-            icon: <Sprout className="w-5 h-5 text-teal-500" />,
-            isActive: activeTab === 'nursery',
-            onClick: () => setActiveTab('nursery'),
-          },
-          {
-            id: 'orders',
-            labelFr: 'Mes Achats (Séquestre CMI)',
-            labelAr: 'مشترياتي والضمان البنكي',
-            icon: <ShoppingCart className="w-5 h-5 text-emerald-500" />,
-            isActive: activeTab === 'orders',
-            onClick: () => setActiveTab('orders'),
+            icon: <Store className="w-5 h-5 text-emerald-600" />,
+            isActive: activeTab === 'market' || activeTab === 'marketplace' || activeTab === 'home',
+            onClick: () => setActiveTab('marketplace'),
           },
           {
             id: 'favorites',
@@ -237,6 +253,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             isActive: activeTab === 'favorites',
             onClick: () => setActiveTab('favorites'),
             badge: favoriteIds.length || undefined,
+          },
+          {
+            id: 'orders',
+            labelFr: 'Mes Achats (Séquestre CMI)',
+            labelAr: 'مشترياتي والضمان البنكي',
+            icon: <ShoppingCart className="w-5 h-5 text-teal-600" />,
+            isActive: activeTab === 'orders' || activeTab === 'order_detail',
+            onClick: () => setActiveTab('orders'),
+          },
+          {
+            id: 'notifications',
+            labelFr: 'Alertes & Baisses de Prix',
+            labelAr: 'تنبيهات انخفاض الأسعار',
+            icon: <Bell className="w-5 h-5 text-amber-500" />,
+            isActive: activeTab === 'notifications',
+            onClick: () => setActiveTab('notifications'),
+          },
+          {
+            id: 'profile',
+            labelFr: 'Mon Profil Acheteur',
+            labelAr: 'الملف المهني للمشتري',
+            icon: <Users className="w-5 h-5 text-stone-600" />,
+            isActive: activeTab === 'profile' || activeTab === 'settings',
+            onClick: () => setActiveTab('profile'),
           },
         ];
     }
@@ -302,6 +342,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {tr(language, 'Outils & Services', 'أدوات وخدمات', 'Tools & Services')}
             </p>
             <div className="space-y-1 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('wholesale');
+                  if (onClose && window.innerWidth < 1024) onClose();
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  activeTab === 'wholesale' || activeTab === 'directory' || activeTab === 'gmail' || activeTab === 'playstore'
+                    ? 'bg-emerald-50 text-emerald-950 font-bold ring-1 ring-emerald-200'
+                    : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4 text-emerald-700" />
+                <span>{tr(language, 'Bourse Mercuriale & Outils', 'بورصة الأسعار والخدمات', 'Price Tickers & Tools')}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
