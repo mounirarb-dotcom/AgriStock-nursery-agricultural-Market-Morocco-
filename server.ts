@@ -935,7 +935,7 @@ async function startServer() {
   if (!IS_PROD) {
     // Development mode: dynamically import Vite
     const { createServer: createViteServer } = await import('vite');
-    const isHmrDisabled = process.env.DISABLE_HMR === 'true';
+    const isHmrDisabled = process.env.DISABLE_HMR === 'true' || process.env.VITE_ENABLE_HMR !== 'true';
     const vite = await createViteServer({
       server: {
         middlewareMode: true,

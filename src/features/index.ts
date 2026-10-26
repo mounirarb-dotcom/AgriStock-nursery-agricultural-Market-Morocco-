@@ -52,3 +52,4 @@ export { AdminSettingsPage } from './admin/pages/AdminSettingsPage';
 
 // Advanced Tools & Secondary Services
 export { AdvancedToolsPage } from './tools/pages/AdvancedToolsPage';
+export { Dashboard } from '../components/Dashboard';

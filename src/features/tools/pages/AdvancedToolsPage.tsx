@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { tr } from '../../../utils/translations';
 import { WholesalePriceTicker } from '../../../components/WholesalePriceTicker';
+import { Dashboard } from '../../../components/Dashboard';
 import { B2BDirectoryView } from '../../../components/B2BDirectoryView';
 import { GmailManager } from '../../../components/GmailManager';
 import { PlayStoreView } from '../../../components/PlayStoreView';
 import {
   Wrench,
   TrendingUp,
+  LineChart as LineChartIcon,
   Store,
   Mail,
   Smartphone,
@@ -15,7 +17,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-export type ToolSubTab = 'wholesale' | 'directory' | 'gmail' | 'playstore';
+export type ToolSubTab = 'wholesale' | 'trends' | 'directory' | 'gmail' | 'playstore';
 
 export const AdvancedToolsPage: React.FC = () => {
   const {
@@ -97,6 +99,19 @@ export const AdvancedToolsPage: React.FC = () => {
 
         <button
           type="button"
+          onClick={() => setCurrentTool('trends')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
+            currentTool === 'trends'
+              ? 'bg-emerald-700 text-white shadow-xs'
+              : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200'
+          }`}
+        >
+          <LineChartIcon className="w-4 h-4" />
+          <span>{tr(language, 'Graphiques & Tendances (Recharts)', 'رسوم بيانية ومؤشرات', 'Charts & Price Trends')}</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setCurrentTool('directory')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition whitespace-nowrap cursor-pointer ${
             currentTool === 'directory'
@@ -138,6 +153,7 @@ export const AdvancedToolsPage: React.FC = () => {
       {/* Contenu de l'outil sélectionné */}
       <div className="bg-white rounded-3xl border border-stone-200 shadow-xs p-4 sm:p-6 overflow-hidden">
         {currentTool === 'wholesale' && <WholesalePriceTicker />}
+        {currentTool === 'trends' && <Dashboard />}
         {currentTool === 'directory' && (
           <B2BDirectoryView onOpenComplianceModal={() => setIsOfficialComplianceModalOpen(true)} />
         )}
