@@ -581,7 +581,9 @@ export interface UserProfile {
   carrierDetails?: CarrierDetails;
   // Protection des comptes et des stocks par mot de passe / code
   isPasswordProtected?: boolean;
+  /** @deprecated Ne jamais stocker en clair. Utiliser passwordHash */
   password?: string;
+  passwordHash?: string;
   securityMethod?: UserSecurityMethod;
   recoveryEmail?: string;
   recoveryPhone?: string;

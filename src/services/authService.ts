@@ -16,6 +16,7 @@ import {
   validatePhone,
   globalClientRateLimiter,
 } from '../utils/securityUtils';
+import bcrypt from 'bcryptjs';
 import {
   UserProfile,
   UserRole,
@@ -92,7 +93,14 @@ export async function registerUserAccount(
       ? 'pending_verification'
       : 'active';
 
-    let uid = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const generateSecureUid = () => {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `usr_${crypto.randomUUID()}`;
+      }
+      return `usr_${Date.now()}_${Math.floor(100000 + Math.random() * 900000)}`;
+    };
+
+    let uid = generateSecureUid();
 
     // 3. Create user in Firebase Authentication
     try {
@@ -133,6 +141,9 @@ export async function registerUserAccount(
 
     const primaryRole = sanitizedRoles[0] || 'buyer';
 
+    // OWASP Security: Hash password using bcrypt (12 salt rounds) - NEVER store plaintext passwords
+    const passwordHash = await bcrypt.hash(params.password, 12);
+
     const newProfile: UserProfile = {
       id: uid,
       role: primaryRole,
@@ -162,7 +173,7 @@ export async function registerUserAccount(
       nurseryDetails: params.nurseryDetails,
       carrierDetails: params.carrierDetails,
       isPasswordProtected: true,
-      password: params.password,
+      passwordHash,
     };
 
     // 4. Persist profile document in Firestore collection 'users'
@@ -328,24 +339,36 @@ export async function loginUserAccount(
         }
       }
 
-      // 3. If found in local/seed/firestore, validate and authenticate seamlessly!
+      // 3. If found in local/seed/firestore, validate with secure password hash
       if (fallbackProfile) {
-        // If password is saved on profile, check match if provided
-        if (fallbackProfile.password && fallbackProfile.password !== pass) {
-          // If password doesn't match and was explicitly specified, return error
-          // Unless special account recovery for registered pépiniériste
-          if (normalizedEmail !== 'elboizidi.ghizlane@gmail.com') {
-            return { success: false, error: 'Mot de passe incorrect.' };
+        let isPasswordValid = false;
+
+        if (fallbackProfile.passwordHash) {
+          isPasswordValid = await bcrypt.compare(pass, fallbackProfile.passwordHash);
+        } else if (fallbackProfile.password) {
+          // Legacy migration fallback: verify exact match, then upgrade to bcrypt hash
+          isPasswordValid = fallbackProfile.password === pass;
+          if (isPasswordValid) {
+            fallbackProfile.passwordHash = await bcrypt.hash(pass, 12);
+            delete fallbackProfile.password;
           }
+        } else {
+          // OWASP Zero Trust: An account without registered credentials cannot be logged into with arbitrary passwords
+          isPasswordValid = false;
         }
 
-        // Try creating / syncing in Firebase Auth in the background so future Firebase Auth works
+        if (!isPasswordValid) {
+          return { success: false, error: 'Email ou mot de passe incorrect.' };
+        }
+
+        // Try syncing in Firebase Auth in the background so future direct Firebase Auth works
         createUserWithEmailAndPassword(auth, normalizedEmail, pass).catch(() => {});
 
-        // Sync or ensure document exists in Firestore
+        // Sync sanitized profile document in Firestore (ensure no plaintext passwords ever stored)
         try {
+          const { password: _p, ...safeProfile } = fallbackProfile as any;
           const userDocRef = doc(db, 'users', fallbackProfile.id);
-          setDoc(userDocRef, fallbackProfile, { merge: true }).catch(() => {});
+          setDoc(userDocRef, safeProfile, { merge: true }).catch(() => {});
         } catch {
           // ignore
         }

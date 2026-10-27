@@ -20,6 +20,7 @@
     "@vis.gl/react-google-maps": "^1.10.1",
     "@vitejs/plugin-react": "^5.0.4",
     "axios": "^1.20.0",
+    "bcryptjs": "^3.0.3",
     "d3": "^7.9.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
+    "@types/bcryptjs": "^3.0.0",
     "@types/d3": "^7.4.3",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",

@@ -21,8 +21,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
         request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'mounir.arb@gmail.com' ||
-        (request.auth.token.email != null && request.auth.token.email.matches('.*@agristock.ma'))
+        request.auth.token.admin == true
       );
     }
 
@@ -76,10 +75,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // User accounts: public read of public profiles, write by owner or admin
+    // User accounts: strictly restricted to account owner or admin (OWASP Data Protection)
     // Public users are strictly forbidden from assigning the 'admin' role to themselves.
     match /users/{userId} {
-      allow read: if true;
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isAdmin()
+      );
       allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin()) &&
         (!('role' in request.resource.data) || request.resource.data.role != 'admin' || isAdmin()) &&
         (!('roles' in request.resource.data) || !request.resource.data.roles.hasAny(['admin']) || isAdmin());

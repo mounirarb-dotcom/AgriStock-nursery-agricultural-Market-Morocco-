@@ -4,6 +4,8 @@ import type { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+import { z } from 'zod';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 
@@ -59,10 +61,10 @@ function getClientIp(req: Request): string {
   return (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.ip || 'unknown';
 }
 
-// Helper: Secure transaction & escrow ID generator
-function generateTransactionId(prefix: string, digits = 4): string {
-  const randomPart = Math.floor(Math.pow(10, digits - 1) + Math.random() * (Math.pow(10, digits) - Math.pow(10, digits - 1)));
-  return `${prefix}-${Date.now()}-${randomPart}`;
+// Helper: Cryptographically secure transaction & escrow ID generator (CSPRNG)
+function generateTransactionId(prefix: string, length = 4): string {
+  const securePart = crypto.randomBytes(length).toString('hex').toUpperCase();
+  return `${prefix}-${Date.now()}-${securePart}`;
 }
 
 const SECURITY_ORIGINS = {
@@ -106,18 +108,18 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   // Cross Origin Policies - allow AI Studio iFrame embedding
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
-  // Hardened Content Security Policy with Google Maps Platform and iFrame allowances
+  // Hardened Content Security Policy with Google Maps Platform and iFrame allowances (Strict OWASP/ASVS)
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')}`,
+      `script-src 'self' 'unsafe-inline' ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')}`,
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')}`,
       `img-src 'self' https: data: blob: ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')} https://*.google.com`,
       "font-src 'self' https: data: https://fonts.gstatic.com https://fonts.googleapis.com",
       `connect-src 'self' https: ws: wss: ${SECURITY_ORIGINS.GOOGLE_MAPS.join(' ')} https://*.google.com ${SECURITY_ORIGINS.FIREBASE.join(' ')} https://api.open-meteo.com`,
       "worker-src 'self' blob:",
-      "frame-ancestors 'self' https://*.google.com https://*.run.app https:",
+      "frame-ancestors 'self' https://*.google.com https://*.run.app",
       "base-uri 'self'",
       "object-src 'none'",
       "upgrade-insecure-requests",
@@ -652,7 +654,7 @@ app.post('/api/products', (req: Request, res: Response) => {
   }
 
   const newProduct: BackendProductItem = {
-    id: body.id || `prod-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    id: body.id || `prod-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
     title: String(body.title).trim(),
     category: String(body.category).trim(),
     variety: String(body.variety || body.title.split(' ')[0] || 'Variété standard').trim(),
@@ -708,76 +710,259 @@ app.delete('/api/products/:id', (req: Request, res: Response) => {
 });
 
 // ============================================================================
-// 6. CMI PAYMENT & ESCROW GATEWAY PROXY & WEBHOOKS
+// 6. CMI PAYMENT & ESCROW GATEWAY PROXY & WEBHOOKS (HMAC SHA-256 VERIFIED)
 // ============================================================================
+const CMI_SECRET_KEY = process.env.CMI_SECRET_KEY || 'agristock_cmi_secure_key_2026';
+
+function generateCmiSignature(payload: string): string {
+  return crypto.createHmac('sha256', CMI_SECRET_KEY).update(payload).digest('hex');
+}
+
+function verifyCmiSignature(payload: string, signature: string): boolean {
+  try {
+    const expected = generateCmiSignature(payload);
+    if (expected.length !== signature.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  } catch {
+    return false;
+  }
+}
+
+interface CmiTransactionRecord {
+  transactionId: string;
+  orderId: string;
+  amountMAD: number;
+  status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+  signature: string;
+  authorizationCode?: string;
+  cardType?: string;
+  buyerEmail?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CmiEscrowRecord {
+  escrowId: string;
+  orderId: string;
+  amountMAD: number;
+  status: 'HELD' | 'RELEASED' | 'REFUNDED';
+  releaseCondition: string;
+  sellerEmail: string;
+  buyerEmail: string;
+  securedAt: string;
+  transferReference?: string;
+}
+
+const cmiTransactionsStore = new Map<string, CmiTransactionRecord>();
+const cmiEscrowsStore = new Map<string, CmiEscrowRecord>();
+
+const CmiPaymentSchema = z.object({
+  orderId: z.string().min(2, 'orderId doit comporter au moins 2 caractères').max(128),
+  amount: z.union([
+    z.number().positive('Le montant doit être positif'),
+    z.string().regex(/^\d+(\.\d+)?$/).transform(Number),
+  ]),
+  description: z.string().max(256).optional(),
+  email: z.string().email('Format email invalide').optional(),
+  phoneNumber: z.string().max(30).optional(),
+  returnUrl: z.string().max(512).optional(),
+});
+
+const CmiEscrowSchema = z.object({
+  orderId: z.string().min(2).max(128),
+  amount: z.union([
+    z.number().positive('Le montant doit être supérieur à zéro'),
+    z.string().regex(/^\d+(\.\d+)?$/).transform(Number),
+  ]),
+  sellerEmail: z.string().email('Email vendeur invalide'),
+  buyerEmail: z.string().email('Email acheteur invalide'),
+  releaseCondition: z.string().max(120).optional(),
+});
+
 app.post('/api/cmi/payment/create', (req: Request, res: Response) => {
-  const { orderId, amount, description, email, phoneNumber, returnUrl } = req.body;
-  if (!orderId || !amount) {
-    return res.status(400).json({ success: false, error: 'orderId et amount requis' });
+  const parseResult = CmiPaymentSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({
+      success: false,
+      error: parseResult.error.issues.map((e) => e.message).join(', '),
+    });
   }
 
+  const { orderId, amount, returnUrl, email } = parseResult.data;
+  const numAmount = Number(amount);
+  const amountMAD = numAmount >= 100 && Number.isInteger(numAmount) ? numAmount / 100 : numAmount;
+
   const transactionId = generateTransactionId('CMI-MA', 4);
-  const authorizationCode = `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
+  const signature = generateCmiSignature(`${orderId}:${amountMAD}:${transactionId}`);
+  const now = new Date().toISOString();
+
+  const record: CmiTransactionRecord = {
+    transactionId,
+    orderId,
+    amountMAD,
+    status: 'PENDING',
+    signature,
+    buyerEmail: email,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  cmiTransactionsStore.set(transactionId, record);
+  cmiTransactionsStore.set(orderId, record);
 
   res.json({
     success: true,
     orderId,
     transactionId,
-    authorizationCode,
-    redirectUrl: `${returnUrl || '/'}?cmi_tx=${transactionId}&status=success`,
-    amountMAD: Number(amount) / 100,
+    signature,
+    redirectUrl: `${returnUrl || '/'}?cmi_tx=${transactionId}&status=pending`,
+    amountMAD,
     currency: 'MAD',
-    status: 'PAID',
-    timestamp: new Date().toISOString(),
+    status: 'PENDING',
+    timestamp: now,
   });
 });
 
 app.get('/api/cmi/payment/status/:orderId', (req: Request, res: Response) => {
   const { orderId } = req.params;
+  const transaction = cmiTransactionsStore.get(orderId);
+
+  if (!transaction) {
+    return res.status(404).json({
+      success: false,
+      error: `Aucune transaction trouvée pour la commande ${orderId}.`,
+    });
+  }
+
   res.json({
-    orderId,
-    status: 'PAID',
-    transactionId: `CMI-TX-MA-${orderId}`,
-    amountMAD: 12500,
-    authorizationCode: 'AUTH-SECURE-984210',
-    cardType: 'Carte Bancaire Marocaine (CMI)',
-    timestamp: new Date().toISOString(),
-    message: 'Transaction validée par le Centre Monétique Interbancaire Maroc',
+    success: true,
+    orderId: transaction.orderId,
+    transactionId: transaction.transactionId,
+    status: transaction.status,
+    amountMAD: transaction.amountMAD,
+    currency: 'MAD',
+    authorizationCode: transaction.authorizationCode || null,
+    cardType: transaction.cardType || 'Carte Bancaire Marocaine (CMI)',
+    signature: transaction.signature,
+    updatedAt: transaction.updatedAt,
+    message: transaction.status === 'PAID'
+      ? 'Transaction confirmée et validée par le Centre Monétique Interbancaire Maroc.'
+      : 'Transaction en cours de traitement sécurisé.',
   });
 });
 
 app.post('/api/cmi/escrow/create', (req: Request, res: Response) => {
-  const { orderId, amount, sellerEmail, buyerEmail, releaseCondition } = req.body;
-  const escrowId = generateTransactionId('ESCROW-CMI', 3);
+  const parseResult = CmiEscrowSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({
+      success: false,
+      error: parseResult.error.issues.map((e) => e.message).join(', '),
+    });
+  }
+
+  const { orderId, amount, sellerEmail, buyerEmail, releaseCondition } = parseResult.data;
+  const numAmount = Number(amount);
+  const amountMAD = numAmount >= 100 && Number.isInteger(numAmount) ? numAmount / 100 : numAmount;
+  const escrowId = generateTransactionId('ESCROW-CMI', 4);
+  const now = new Date().toISOString();
+
+  const escrowRecord: CmiEscrowRecord = {
+    escrowId,
+    orderId,
+    amountMAD,
+    status: 'HELD',
+    releaseCondition: releaseCondition || 'buyer_confirmation',
+    sellerEmail,
+    buyerEmail,
+    securedAt: now,
+  };
+
+  cmiEscrowsStore.set(orderId, escrowRecord);
+  cmiEscrowsStore.set(escrowId, escrowRecord);
 
   res.json({
     success: true,
     escrowId,
     orderId,
     status: 'HELD',
-    amountMAD: Number(amount) / 100,
-    releaseCondition: releaseCondition || 'buyer_confirmation',
+    amountMAD,
+    releaseCondition: escrowRecord.releaseCondition,
     sellerEmail,
     buyerEmail,
-    securedAt: new Date().toISOString(),
+    securedAt: now,
   });
 });
 
 app.post('/api/cmi/escrow/release/:orderId', (req: Request, res: Response) => {
   const { orderId } = req.params;
+  const escrow = cmiEscrowsStore.get(orderId);
+
+  if (!escrow) {
+    return res.status(404).json({
+      success: false,
+      error: `Séquestre introuvable pour la commande ${orderId}.`,
+    });
+  }
+
+  if (escrow.status === 'RELEASED') {
+    return res.status(400).json({
+      success: false,
+      error: 'Les fonds sous séquestre ont déjà été libérés.',
+    });
+  }
+
+  const transferReference = generateTransactionId('VIR-CMI-MA', 4);
+  escrow.status = 'RELEASED';
+  escrow.transferReference = transferReference;
+
   res.json({
     success: true,
     orderId,
+    escrowId: escrow.escrowId,
     status: 'RELEASED',
-    releasedAmountMAD: 0,
-    transferReference: generateTransactionId('VIR-CMI-MA', 4),
+    releasedAmountMAD: escrow.amountMAD,
+    transferReference,
     timestamp: new Date().toISOString(),
   });
 });
 
 app.post('/api/webhooks/cmi', (req: Request, res: Response) => {
-  console.log('[CMI Webhook Notification Received]:', req.body);
-  res.json({ received: true, status: 'ACKNOWLEDGED', timestamp: new Date().toISOString() });
+  const signatureHeader = (req.headers['x-cmi-signature'] as string) || req.body?.signature;
+  const { orderId, transactionId, amount, status } = req.body || {};
+
+  if (!orderId || !transactionId || !signatureHeader) {
+    return res.status(400).json({
+      success: false,
+      error: 'Paramètres webhook ou signature HMAC CMI manquants.',
+    });
+  }
+
+  const payloadToVerify = `${orderId}:${amount}:${transactionId}`;
+  const isValid = verifyCmiSignature(payloadToVerify, signatureHeader);
+
+  if (!isValid) {
+    console.warn(`[CMI Security Violation] Webhook signature verification failed for ${transactionId}`);
+    return res.status(401).json({
+      success: false,
+      error: 'Signature CMI invalide (Échec authentification HMAC SHA-256).',
+    });
+  }
+
+  const tx = cmiTransactionsStore.get(transactionId) || cmiTransactionsStore.get(orderId);
+  if (tx) {
+    tx.status = status === 'SUCCESS' || status === 'PAID' ? 'PAID' : 'FAILED';
+    tx.authorizationCode = `AUTH-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    tx.updatedAt = new Date().toISOString();
+  }
+
+  console.log(`[CMI Webhook Verified] Transaction ${transactionId} updated to status: ${status}`);
+  res.json({
+    received: true,
+    status: 'VERIFIED',
+    orderId,
+    transactionId,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ============================================================================
